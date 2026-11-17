@@ -108,6 +108,10 @@ export default async function AdminBooks({
                     <button className="btn btn-ghost" type="submit">Save price</button>
                   </form>
                   <div className="grid grid-cols-2 gap-2"><BookUpload slug={b.slug} kind="pdf" /><BookUpload slug={b.slug} kind="cover" /></div>
+                  <form action="/api/admin/book" method="post">
+                    <input type="hidden" name="action" value={b.active ? "hide" : "show"} /><input type="hidden" name="slug" value={b.slug} />
+                    <button className="btn btn-ghost w-full" type="submit">{b.active ? "Remove from store" : "Restore to store"}</button>
+                  </form>
                   {!b.release_approved && <form action="/api/admin/book" method="post">
                     <input type="hidden" name="action" value="put-on-sale" /><input type="hidden" name="slug" value={b.slug} />
                     <button className="btn btn-primary w-full" type="submit" disabled={!canRelease} title={canRelease ? undefined : file.reason ?? "Set a price first."}>

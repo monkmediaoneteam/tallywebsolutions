@@ -28,11 +28,19 @@ export async function POST(req: Request) {
       : action === 'create' ? ['action', 'slug', 'title']
       : action === 'pricing' ? ['action', 'slug', 'sale_price', 'sale_starts_at', 'sale_ends_at']
       : action === 'put-on-sale' ? ['action', 'slug']
+      : action === 'hide' || action === 'show' ? ['action', 'slug']
       : action === 'price' ? ['action', 'slug', 'price']
       : ['action', 'slug', 'title', 'subtitle', 'price_inr', 'publisher', 'isbn', 'pages', 'year', 'cover', 'description', 'long_description', 'authorship', 'facts', 'highlights', 'active',
          'category_slug', 'release_date', 'language', 'edition', 'file_format', 'author_slug'];
-    if (!['save', 'release', 'archive', 'restore', 'create', 'pricing', 'put-on-sale', 'price'].includes(String(action)) || [...form.keys()].some(key => !allowed.includes(key) || form.getAll(key).length !== 1)) throw new PublishingError('Invalid book fields.');
-    if (action === 'put-on-sale') {
+    if (!['save', 'release', 'archive', 'restore', 'create', 'pricing', 'put-on-sale', 'price', 'hide', 'show'].includes(String(action)) || [...form.keys()].some(key => !allowed.includes(key) || form.getAll(key).length !== 1)) throw new PublishingError('Invalid book fields.');
+    if (action === 'hide' || action === 'show') {
+      const rows = await sql`with changed as (
+        update books set active=${action === 'show'} where slug=${slug} and not third_party returning slug
+      ), audit as (insert into events(order_id,type,payload)
+        select null,${action === 'hide' ? 'admin.book.hidden' : 'admin.book.shown'},jsonb_build_object('slug',slug) from changed)
+      select slug from changed`;
+      if (!rows.length) throw new PublishingError('Add-on not found.', 404);
+    } else if (action === 'put-on-sale') {
       await putOnSale(sql, { slug, root: process.cwd() });
     } else if (action === 'price') {
       await setRegularPrice(sql, { slug, rupees: textField(form.get('price'), 20, true) });

@@ -185,10 +185,14 @@ try {
   assert.equal((await adminBooks.POST(form('/api/admin/book', releaseForm))).status, 409);
   await db.query("update publishing_assets set reviewed=true where id='existing-manuscript'");
   assert.equal((await adminBooks.POST(form('/api/admin/book', releaseForm))).status, 303);
+  assert.equal((await adminBooks.POST(form('/api/admin/book', { action: 'hide', slug: 'existing-firstparty' }))).status, 303);
+  assert.equal((await db.query("select active from books where slug='existing-firstparty'")).rows[0].active, false);
+  assert.equal((await adminBooks.POST(form('/api/admin/book', { action: 'show', slug: 'existing-firstparty' }))).status, 303);
+  assert.equal((await db.query("select active from books where slug='existing-firstparty'")).rows[0].active, true);
   const adminMarkup = renderToStaticMarkup(await adminBooksPage.default({ searchParams: Promise.resolve({}) }));
   assert.equal(adminMarkup.includes('name="file_url"'), false);
   assert.equal((adminMarkup.match(/name="action" value="release"/g) ?? []).length, 1);
-  assert.equal((adminMarkup.match(/<form\b/g) ?? []).length, 7); // create, search, price, offer, details, release, archive
+  assert.equal((adminMarkup.match(/<form\b/g) ?? []).length, 8); // includes store visibility control
   assert.equal((adminMarkup.match(/name="action" value="price"/g) ?? []).length, 1, "inline price form");
   assert.ok(adminMarkup.includes('id="existing-firstparty-release-submission"'));
   assert.ok(adminMarkup.includes('name="reason"'));
