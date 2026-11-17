@@ -183,7 +183,7 @@ export default function AddOnShelf({ items }: { items: ShelfItem[] }) {
     const S = st.current;
     if (S.moved) return;
     const r = offset(v, S.s, loop);
-    if (Math.abs(r) < 0.5) router.push(`/books/${encodeURIComponent(items[v % n].slug)}`);
+    if (Math.abs(r) < 0.5) router.push(`/products/${encodeURIComponent(items[v % n].slug)}`);
     else S.T = Math.round(S.T + r);
   };
   const current = items[active];
@@ -210,7 +210,7 @@ export default function AddOnShelf({ items }: { items: ShelfItem[] }) {
       <div className="shelf-lines" ref={captionRef} aria-live="polite" />
       <p className="shelf-price">{current.onSale ? <><s>{rupees(current.regular)}</s> {rupees(current.price)}</> : rupees(current.price)}
         {!current.saleable && <span className="shelf-soon"> · Not yet on sale</span>}</p>
-      <Link className="btn btn-primary" href={`/books/${encodeURIComponent(current.slug)}`}>View add-on <span aria-hidden="true">→</span></Link>
+      <Link className="btn btn-primary" href={`/products/${encodeURIComponent(current.slug)}`}>View add-on <span aria-hidden="true">→</span></Link>
     </div>
     <div className="shelf-controls">
       <button type="button" className="round-btn" onClick={() => step(-1)} aria-label="Previous add-on"><ChevronLeft size={17} aria-hidden="true" /></button>

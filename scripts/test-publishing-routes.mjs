@@ -17,7 +17,8 @@ let uploadedPath = '';
 const origin = 'https://publishing.test';
 const dependencies = {
   'next/server': { NextResponse }, 'next/cache': { revalidatePath() {} },
-  'next/navigation': { redirect() { throw new Error('Admin sign-in required'); } },
+  'next/navigation': { redirect() { throw new Error('Admin sign-in required'); }, notFound() { throw new Error('Not found'); } },
+  react: await import('react'),
   'react/jsx-runtime': await import('react/jsx-runtime'),
   'lucide-react': await import('lucide-react'),
   '@/components/AdminShell': { default: ({ children }) => children },
@@ -53,24 +54,30 @@ try {
   dependencies['@/lib/db'] = { sql: async (parts, ...values) => (await db.query(parts.reduce((sql, part, i) => sql + (i ? `$${i}` : '') + part, ''), values)).rows };
   dependencies['@/lib/submissions'] = await load('../src/lib/submissions.ts');
   dependencies['@/lib/content'] = await load('../src/lib/content.ts');
+  dependencies['@/lib/product-status'] = await load('../src/lib/product-status.ts');
   dependencies['@/lib/admin-catalogue'] = await load('../src/lib/admin-catalogue.ts');
   dependencies['@/lib/file-types'] = await load('../src/lib/file-types.ts');
   dependencies['@/lib/admin-sale'] = await load('../src/lib/admin-sale.ts');
   dependencies['@/lib/money'] = await load('../src/lib/money.ts');
-  dependencies['./BookForm'] = await load('../src/app/admin/books/BookForm.tsx');
-  dependencies['./BookUpload'] = { default: () => null };
+  dependencies['@/lib/offers'] = await load('../src/lib/offers.ts');
+  dependencies['../ProductForm'] = await load('../src/app/admin/products/ProductForm.tsx');
+  dependencies['../ProductUpload'] = { default: () => null };
+  dependencies['../StatusBadge'] = dependencies['./StatusBadge'] = await load('../src/app/admin/products/StatusBadge.tsx');
+  dependencies['./ProductTable'] = await load('../src/app/admin/products/ProductTable.tsx');
   const authorRoute = await load('../src/app/api/submissions/route.ts');
   const uploads = await load('../src/app/api/submissions/uploads/route.ts');
   const scanner = await load('../src/app/api/submissions/scan/route.ts');
   const review = await load('../src/app/api/admin/platform/review/route.ts');
   const content = await load('../src/app/api/admin/platform/content/route.ts');
   const assets = await load('../src/app/api/submissions/assets/[id]/route.ts');
-  const adminBooks = await load('../src/app/api/admin/book/route.ts');
-  const adminBooksPage = await load('../src/app/admin/books/page.tsx');
-  const oversizedBookForm = () => new Request(`${origin}/api/admin/book`, { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': '200001' }, body: 'not-a-form' });
+  const adminBooks = await load('../src/app/api/admin/products/route.ts');
+  const adminBooksPage = await load('../src/app/admin/products/page.tsx');
+  const adminProductPage = await load('../src/app/admin/products/[slug]/page.tsx');
+  const oversizedBookForm = () => new Request(`${origin}/api/admin/products`, { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': '200001' }, body: 'not-a-form' });
   assert.equal((await adminBooks.POST(oversizedBookForm())).status, 401);
-  assert.equal((await adminBooks.POST(new Request(`${origin}/api/admin/book`, { method: 'POST', headers: { Origin: origin, 'Content-Type': 'multipart/form-data' }, body: 'invalid multipart' }))).status, 401);
+  assert.equal((await adminBooks.POST(new Request(`${origin}/api/admin/products`, { method: 'POST', headers: { Origin: origin, 'Content-Type': 'multipart/form-data' }, body: 'invalid multipart' }))).status, 401);
   await assert.rejects(adminBooksPage.default({ searchParams: Promise.resolve({}) }), /Admin sign-in required/);
+  await assert.rejects(adminProductPage.default({ params: Promise.resolve({ slug: 'existing-firstparty' }), searchParams: Promise.resolve({}) }), /Admin sign-in required/);
   assert.equal((await authorRoute.POST(form('/api/submissions', { action: 'profile', name: 'Test author' }))).status, 401);
   reader = { id: 'reader-a', email: 'test@example.test', name: 'Test author' };
   assert.equal((await authorRoute.POST(form('/api/submissions', { action: 'profile', name: 'Test author' }, 'https://evil.test'))).status, 403);
@@ -114,14 +121,14 @@ try {
   assert.equal((await adminBooks.POST(oversizedBookForm())).status, 413);
   await db.query("insert into books(slug,title,price_inr,facts) values('existing-firstparty','Existing first-party book',100,'{\"_internal\":\"preserved\",\"Old\":\"discard\"}')");
   const bookMetadata = { action: 'save', slug: 'existing-firstparty', title: 'Edited first-party book', price_inr: '1.25', cover: '/assets/cover.png', active: 'on', facts: 'Author: Reviewed author', pages: '100', year: '2026' };
-  assert.equal((await adminBooks.POST(form('/api/admin/book', bookMetadata, 'https://evil.test'))).status, 403);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', bookMetadata, 'https://evil.test'))).status, 403);
   for (const invalid of [{ title: '' }, { title: 'a'.repeat(201) }, { price_inr: '' }, { price_inr: '1.001' }, { price_inr: '1000000.01' }, { pages: '-1' }, { pages: '1.5' }, { year: '10000' }, { cover: 'javascript:alert(1)' }, { cover: '//evil.test/cover.png' }, { cover: '/\\evil.test' }, { facts: '_internal: overwritten' }, { file_url: 'https://evil.test/arbitrary.pdf' }, { file_sha256: 'b'.repeat(64) }]) {
-    assert.equal((await adminBooks.POST(form('/api/admin/book', { ...bookMetadata, ...invalid }))).status, 400, JSON.stringify(invalid));
+    assert.equal((await adminBooks.POST(form('/api/admin/products', { ...bookMetadata, ...invalid }))).status, 400, JSON.stringify(invalid));
   }
-  assert.equal((await adminBooks.POST(form('/api/admin/book', bookMetadata))).status, 303);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', bookMetadata))).status, 303);
   await db.query("insert into books(slug,title,price_inr,active) values('deletion-check','Deletion check',100,false)");
-  assert.equal((await adminBooks.POST(form('/api/admin/book', { action: 'delete', slug: 'deletion-check' }))).status, 400);
-  assert.equal((await adminBooks.POST(form('/api/admin/book', { action: 'delete', slug: 'deletion-check', confirmed: 'on' }))).status, 303);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { action: 'delete', slug: 'deletion-check' }))).status, 400);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { action: 'delete', slug: 'deletion-check', confirmed: 'on' }))).status, 303);
   assert.equal((await db.query("select slug from books where slug='deletion-check'")).rows.length, 0);
   const edited = (await db.query("select title,price_inr,facts,release_approved from books where slug='existing-firstparty'")).rows[0];
   assert.deepEqual(edited, { title: 'Edited first-party book', price_inr: 125, facts: { _internal: 'preserved', Author: 'Reviewed author' }, release_approved: false });
@@ -153,18 +160,18 @@ try {
   const thirdpartySubmissionBefore = (await db.query('select * from publishing_submissions where id=$1', [id])).rows[0];
   const thirdpartySnapshot = [{ slug: 'test-released-title', title: 'Purchased publication', price: thirdpartyBefore.price_inr, file_url: thirdpartyBefore.file_url, file_sha256: thirdpartyBefore.file_sha256, file_format: 'PDF' }];
   await db.query("insert into orders(id,email,items,subtotal,total,status) values('thirdparty-purchase','reader@example.test',$1::jsonb,$2,$2,'fulfilled')", [JSON.stringify(thirdpartySnapshot), thirdpartyBefore.price_inr]);
-  assert.equal((await adminBooks.POST(form('/api/admin/book', { action: 'delete', slug: 'test-released-title', confirmed: 'on' }))).status, 409);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { action: 'delete', slug: 'test-released-title', confirmed: 'on' }))).status, 409);
   const metadataAuditCount = (await db.query("select count(*)::int count from events where type='admin.book.updated'")).rows[0].count;
-  assert.equal((await adminBooks.POST(form('/api/admin/book', { ...bookMetadata, slug: 'test-released-title' }))).status, 409);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { ...bookMetadata, slug: 'test-released-title' }))).status, 409);
   assert.deepEqual((await db.query("select * from books where slug='test-released-title'")).rows[0], thirdpartyBefore);
   assert.equal((await db.query("select count(*)::int count from events where type='admin.book.updated'")).rows[0].count, metadataAuditCount);
   const archiveForm = { action: 'archive', slug: 'test-released-title', reason: 'Withdraw public visibility temporarily', confirmed: 'on' };
-  assert.equal((await adminBooks.POST(form('/api/admin/book', { ...archiveForm, slug: 'existing-firstparty' }))).status, 409);
-  assert.equal((await adminBooks.POST(form('/api/admin/book', { ...archiveForm, confirmed: '' }))).status, 400);
-  assert.equal((await adminBooks.POST(form('/api/admin/book', { ...archiveForm, price_inr: '0' }))).status, 400);
-  assert.equal((await adminBooks.POST(form('/api/admin/book', archiveForm))).status, 303);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { ...archiveForm, slug: 'existing-firstparty' }))).status, 409);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { ...archiveForm, confirmed: '' }))).status, 400);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { ...archiveForm, price_inr: '0' }))).status, 400);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', archiveForm))).status, 303);
   assert.deepEqual((await db.query("select * from books where slug='test-released-title'")).rows[0], { ...thirdpartyBefore, active: false });
-  assert.equal((await adminBooks.POST(form('/api/admin/book', { ...archiveForm, action: 'restore', reason: 'Restore approved public visibility' }))).status, 303);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { ...archiveForm, action: 'restore', reason: 'Restore approved public visibility' }))).status, 303);
   assert.deepEqual((await db.query("select * from books where slug='test-released-title'")).rows[0], thirdpartyBefore);
   assert.deepEqual((await db.query('select * from publishing_submissions where id=$1', [id])).rows[0], thirdpartySubmissionBefore);
   assert.deepEqual((await db.query("select items from orders where id='thirdparty-purchase'")).rows[0].items, thirdpartySnapshot);
@@ -173,32 +180,65 @@ try {
   assert.equal(visibilityAudit[0].payload.reason, archiveForm.reason);
   assert.equal(visibilityAudit[0].payload.slug, 'test-released-title');
   await db.query("insert into books(slug,title,price_inr,third_party) values('unapproved-thirdparty','Unapproved publication',100,true)");
-  assert.equal((await adminBooks.POST(form('/api/admin/book', { ...archiveForm, slug: 'unapproved-thirdparty', action: 'restore' }))).status, 303);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { ...archiveForm, slug: 'unapproved-thirdparty', action: 'restore' }))).status, 303);
   assert.equal((await db.query("select release_approved from books where slug='unapproved-thirdparty'")).rows[0].release_approved, false);
-  assert.equal((await adminBooks.POST(form('/api/admin/book', { ...archiveForm, slug: 'unapproved-thirdparty', action: 'restore', release_approved: 'on' }))).status, 400);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { ...archiveForm, slug: 'unapproved-thirdparty', action: 'restore', release_approved: 'on' }))).status, 400);
   await db.query("delete from books where slug='unapproved-thirdparty'");
   await db.query(`insert into publishing_submissions(id,author_id,title,description,price_inr,status,ownership_declared,ownership_declared_by,ownership_declared_at,rights_approved,commercial_approved)
     select 'existing-review',author_id,title,description,price_inr,'approved',ownership_declared,ownership_declared_by,ownership_declared_at,true,true from publishing_submissions where id=$1`, [id]);
   await db.query(`insert into publishing_assets(id,submission_id,kind,blob_url,sha256,content_type,size_bytes,scan_status,reviewed)
     select 'existing-' || kind,'existing-review',kind,blob_url,sha256,content_type,size_bytes,'clean',true from publishing_assets where submission_id=$1`, [id]);
   const releaseForm = { action: 'release', slug: 'existing-firstparty', submission_id: 'existing-review', reason: 'Reviewed first-party publication', confirmed: 'on' };
-  assert.equal((await adminBooks.POST(form('/api/admin/book', { ...releaseForm, confirmed: '' }))).status, 400);
-  assert.equal((await adminBooks.POST(form('/api/admin/book', { ...releaseForm, reason: '' }))).status, 400);
-  assert.equal((await adminBooks.POST(form('/api/admin/book', { ...releaseForm, file_url: 'https://evil.test/arbitrary.pdf' }))).status, 400);
-  assert.equal((await adminBooks.POST(form('/api/admin/book', { ...releaseForm, slug: 'test-released-title' }))).status, 409);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { ...releaseForm, confirmed: '' }))).status, 400);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { ...releaseForm, reason: '' }))).status, 400);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { ...releaseForm, file_url: 'https://evil.test/arbitrary.pdf' }))).status, 400);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { ...releaseForm, slug: 'test-released-title' }))).status, 409);
   await db.query("update publishing_assets set reviewed=false where id='existing-manuscript'");
-  assert.equal((await adminBooks.POST(form('/api/admin/book', releaseForm))).status, 409);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', releaseForm))).status, 409);
   await db.query("update publishing_assets set reviewed=true where id='existing-manuscript'");
-  assert.equal((await adminBooks.POST(form('/api/admin/book', releaseForm))).status, 303);
-  assert.equal((await adminBooks.POST(form('/api/admin/book', { action: 'hide', slug: 'existing-firstparty' }))).status, 303);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', releaseForm))).status, 303);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { action: 'hide', slug: 'existing-firstparty' }))).status, 303);
   assert.equal((await db.query("select active from books where slug='existing-firstparty'")).rows[0].active, false);
-  assert.equal((await adminBooks.POST(form('/api/admin/book', { action: 'show', slug: 'existing-firstparty' }))).status, 303);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { action: 'show', slug: 'existing-firstparty' }))).status, 303);
+  const bulk = (op, slugs, extra = {}) => { const body = new URLSearchParams({ action: 'bulk', op, ...extra }); for (const slug of slugs) body.append('slugs', slug); return new Request(`${origin}/api/admin/products`, { method: 'POST', headers: { Origin: origin }, body }); };
+  assert.equal((await adminBooks.POST(bulk('hide', []))).status, 400);
+  assert.equal((await adminBooks.POST(bulk('explode', ['existing-firstparty']))).status, 400);
+  assert.equal((await adminBooks.POST(bulk('hide', ['Bad Slug']))).status, 400);
+  const hidden = await adminBooks.POST(bulk('hide', ['existing-firstparty', 'test-released-title'], { back: 'q=exist&status=on-sale&evil=1' }));
+  assert.match(hidden.headers.get('location'), /\/admin\/products\?q=exist&status=on-sale&notice=/, 'bulk keeps the list search and filter');
+  assert.equal(hidden.status, 303);
+  assert.match(decodeURIComponent(hidden.headers.get('location')), /Removed 1 product from the store\. 1 skipped/);
+  assert.equal((await db.query("select active from books where slug='existing-firstparty'")).rows[0].active, false);
+  assert.equal((await db.query("select active from books where slug='test-released-title'")).rows[0].active, true, 'bulk never changes developer submissions');
+  assert.equal((await adminBooks.POST(bulk('show', ['existing-firstparty']))).status, 303);
   assert.equal((await db.query("select active from books where slug='existing-firstparty'")).rows[0].active, true);
-  const adminMarkup = renderToStaticMarkup(await adminBooksPage.default({ searchParams: Promise.resolve({}) }));
+  await db.query("insert into books(slug,title,price_inr) values('bulk-a','Bulk A',100),('bulk-b','Bulk B',100)");
+  assert.equal((await adminBooks.POST(bulk('delete', ['bulk-a', 'bulk-b']))).status, 400, 'bulk delete needs confirmation');
+  const deleted = await adminBooks.POST(bulk('delete', ['bulk-a', 'bulk-b', 'test-released-title'], { confirmed: 'on' }));
+  assert.match(decodeURIComponent(deleted.headers.get('location')), /Deleted 2 of 3 products\. 1 kept/);
+  assert.equal((await db.query("select count(*)::int n from books where slug in ('bulk-a','bulk-b')")).rows[0].n, 0);
+  assert.equal((await db.query("select count(*)::int n from books where slug='test-released-title'")).rows[0].n, 1);
+  assert.equal((await db.query("select active from books where slug='existing-firstparty'")).rows[0].active, true);
+  // The list is a table with only a search form (Add product sits in the shell header); edit and delete happen per row or in bulk.
+  const listMarkup = renderToStaticMarkup(await adminBooksPage.default({ searchParams: Promise.resolve({}) }));
+  assert.equal((listMarkup.match(/<form\b/g) ?? []).length, 1, 'only the search form');
+  assert.ok(listMarkup.includes('href="/admin/products/existing-firstparty"'));
+  assert.ok(listMarkup.includes('aria-label="Select all products on this page"'));
+  assert.match(listMarkup, /type="checkbox"[^>]*disabled=""[^>]*aria-label="[^"]*developer submission/, 'developer submissions are not bulk-selectable');
+  const filtered = renderToStaticMarkup(await adminBooksPage.default({ searchParams: Promise.resolve({ status: 'submission' }) }));
+  assert.equal(filtered.includes('href="/admin/products/existing-firstparty"'), false);
+  assert.ok(filtered.includes('href="/admin/products/test-released-title"'));
+  await assert.rejects(adminProductPage.default({ params: Promise.resolve({ slug: 'no-such-product' }), searchParams: Promise.resolve({}) }), /Not found/);
+  const edit = async slug => renderToStaticMarkup(await adminProductPage.default({ params: Promise.resolve({ slug }), searchParams: Promise.resolve({}) }));
+  const adminMarkup = (await edit('existing-firstparty')) + (await edit('test-released-title'));
   assert.equal(adminMarkup.includes('name="file_url"'), false);
   assert.equal((adminMarkup.match(/name="action" value="release"/g) ?? []).length, 1);
-  assert.equal((adminMarkup.match(/<form\b/g) ?? []).length, 9); // includes store visibility and deletion controls
-  assert.equal((adminMarkup.match(/name="action" value="price"/g) ?? []).length, 1, "inline price form");
+  // One home per setting: details, release, delete and visibility for a product; archive for the submission.
+  // Discounts live on the Offers screen, and the regular price only in the details form.
+  assert.equal((adminMarkup.match(/<form\b/g) ?? []).length, 5);
+  assert.equal((adminMarkup.match(/name="action" value="price"/g) ?? []).length, 0, 'no second price form');
+  assert.equal((adminMarkup.match(/name="sale_price"/g) ?? []).length, 0, 'offers are not edited on the product');
+  assert.equal((adminMarkup.match(/name="price_inr"/g) ?? []).length, 1);
   assert.ok(adminMarkup.includes('id="existing-firstparty-release-submission"'));
   assert.ok(adminMarkup.includes('name="reason"'));
   assert.ok(adminMarkup.includes('name="confirmed"'));
@@ -207,11 +247,17 @@ try {
   assert.equal(adminMarkup.includes('id="test-released-title-title"'), false);
   const firstparty = (await db.query("select third_party,release_approved,file_sha256,file_format from books where slug='existing-firstparty'")).rows[0];
   assert.deepEqual(firstparty, { third_party: false, release_approved: true, file_sha256: registered[0].hash, file_format: 'PDF' });
-  assert.equal((await adminBooks.POST(form('/api/admin/book', bookMetadata))).status, 303);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', bookMetadata))).status, 303);
   assert.equal((await db.query("select release_approved from books where slug='existing-firstparty'")).rows[0].release_approved, true, 'editing details keeps a released book on sale');
-  assert.equal((await adminBooks.POST(form('/api/admin/book', { ...bookMetadata, file_format: 'EPUB' }))).status, 303);
+  // A stored value the form sends back untouched never blocks a save, even if today's rules would reject it as new input.
+  const legacyCover = 'data:image/svg+xml,%3Csvg%3E%3C/svg%3E';
+  await db.query("update books set cover=$1 where slug='existing-firstparty'", [legacyCover]);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { ...bookMetadata, cover: legacyCover }))).status, 303, 'unchanged cover is kept');
+  assert.equal((await db.query("select cover from books where slug='existing-firstparty'")).rows[0].cover, legacyCover);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { ...bookMetadata, cover: 'javascript:alert(1)' }))).status, 400, 'a changed cover is still checked');
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { ...bookMetadata, file_format: 'EPUB' }))).status, 303);
   assert.equal((await db.query("select release_approved from books where slug='existing-firstparty'")).rows[0].release_approved, false, 'changing the file format needs a new release');
-  assert.equal((await adminBooks.POST(form('/api/admin/book', releaseForm))).status, 303);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', releaseForm))).status, 303);
   admin = false;
   assert.equal((await assets.GET(new Request(origin), { params: Promise.resolve({ id: registered[0].id }) })).status, 404);
   assert.equal((await assets.GET(new Request(origin), { params: Promise.resolve({ id: registered[1].id }) })).status, 200);

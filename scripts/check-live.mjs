@@ -18,12 +18,12 @@ export async function runLiveChecks(base, fetchImpl = fetch) {
   const found = suggest.ok ? (await suggest.json()).books?.length ?? 0 : 0;
   note(found > 0, 'search suggestions return books', `search suggestions returned no books (status ${suggest.status})`);
   const home = await (await get('/')).text();
-  const slug = home.match(/href="\/books\/([a-z0-9][a-z0-9_-]*)"/)?.[1];
-  if (!slug) failures.push('homepage links to no book page');
+  const slug = home.match(/href="\/products\/([a-z0-9][a-z0-9_-]*)"/)?.[1];
+  if (!slug) failures.push('homepage links to no product page');
   else {
-    const page = await (await get(`/books/${slug}`)).text();
+    const page = await (await get(`/products/${slug}`)).text();
     const sellable = /₹\d/.test(page) && /Buy now/.test(page);
-    note(sellable, `/books/${slug} shows a price and Buy now`, `/books/${slug} has no price or Buy now (book not released or checkout off)`);
+    note(sellable, `/products/${slug} shows a price and Buy now`, `/products/${slug} has no price or Buy now (product not released or checkout off)`);
   }
   const admin = await (await get('/admin/login')).text();
   note(/Admin password/.test(admin), "admin password sign-in is available", "admin login has no password form: set ADMIN_PASSWORD in Vercel.");

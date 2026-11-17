@@ -11,7 +11,7 @@ const nav: { key: AdminSection; label: string; href: string }[] = [
   { key: "overview", label: "Dashboard", href: "/admin" },
   { key: "analytics", label: "Analytics", href: "/admin/analytics" },
   { key: "orders", label: "Orders", href: "/admin/orders" },
-  { key: "books", label: "Add-ons", href: "/admin/books" },
+  { key: "books", label: "Products", href: "/admin/products" },
   { key: "offers", label: "Offers", href: "/admin/offers" },
   { key: "categories", label: "Categories", href: "/admin/categories" },
   { key: "authors", label: "Developers", href: "/admin/platform/authors" },

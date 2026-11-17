@@ -81,7 +81,7 @@ await check('checkout accepts the exact byte limit and still validates the reque
     method: 'POST', body: raw, headers: { 'idempotency-key': 'checkout-boundary001' },
   }));
   assert.equal(response.status, 400);
-  assert.match((await response.json()).error, /distinct books/i);
+  assert.match((await response.json()).error, /distinct products/i);
 });
 await check('webhook verifies exact raw UTF-8 across chunks at its byte limit', async () => {
   const prefix = ' \n{"event":"ignored","text":"\u00e9", "padding":"';

@@ -53,7 +53,7 @@ export function validateContent(section: ContentSection, input: Record<string, u
   const slug = input.slug ? textField(input.slug, 120) : "";
   if (section === "collections" && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new ContentError("Use a lowercase collection slug.");
   const bookSlugs = input.book_slugs ?? [];
-  if (!Array.isArray(bookSlugs) || bookSlugs.length > 100 || bookSlugs.some(s => typeof s !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s)) || new Set(bookSlugs).size !== bookSlugs.length) throw new ContentError("Invalid book selection.");
+  if (!Array.isArray(bookSlugs) || bookSlugs.length > 100 || bookSlugs.some(s => typeof s !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s)) || new Set(bookSlugs).size !== bookSlugs.length) throw new ContentError("Invalid product selection.");
   const payload = input.payload ?? {};
   const allowedKeys = ["subtitle", "quote", "attribution", "collection_slug", "author_id", "book_slugs", "video_url", "theme", "size", "category_slug", "category_slugs"];
   if (!payload || typeof payload !== "object" || Array.isArray(payload) || JSON.stringify(payload).length > 10000 || Object.keys(payload).some(k => !allowedKeys.includes(k))) throw new ContentError("Invalid module data.");
@@ -65,7 +65,7 @@ export function validateContent(section: ContentSection, input: Record<string, u
     else if (key === "category_slugs") {
       if (!Array.isArray(value) || value.length > 8 || value.some(s => typeof s !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s))) throw new ContentError("Choose up to 8 categories.");
     } else if (key === "book_slugs") {
-      if (!Array.isArray(value) || value.length > 100 || value.some(s => typeof s !== "string" || !/^[a-z0-9-]{1,120}$/.test(s))) throw new ContentError("Invalid module book selection.");
+      if (!Array.isArray(value) || value.length > 100 || value.some(s => typeof s !== "string" || !/^[a-z0-9-]{1,120}$/.test(s))) throw new ContentError("Invalid module product selection.");
     } else textField(value, 4000);
   }
   return { title, status: status as ContentModule["status"], publish_at: publishAt, ends_at: endsAt, sort, type: String(type), slug,
@@ -119,7 +119,7 @@ export async function saveContent(section: ContentSection, id: string, expected:
   let rows;
   if (section === "collections") {
     const books = await sql`select slug from books where slug in (select jsonb_array_elements_text(${JSON.stringify(c.book_slugs)}::jsonb))`;
-    if (books.length !== c.book_slugs.length) throw new ContentError("One or more selected books do not exist.");
+    if (books.length !== c.book_slugs.length) throw new ContentError("One or more selected products do not exist.");
     if (id && id !== c.slug) throw new ContentError("A saved collection slug cannot be changed.");
     rows = await sql`with changed as (
       insert into content_collections(slug,title,description,image_url,book_slugs,sort,status,publish_at)

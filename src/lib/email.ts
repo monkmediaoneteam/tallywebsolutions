@@ -116,7 +116,7 @@ export function confirmationPayload(order: Order, siteUrl: string): EmailPayload
   return {
     from: env("MAIL_FROM"),
     to: order.email,
-    subject: `Your book is ready ${inv}`,
+    subject: `Your download is ready ${inv}`,
     html: shell(
       `
       <p style="margin:0 0 10px;font-family:'Courier New',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:${BRAND.mute};">Order confirmed</p>
@@ -128,7 +128,7 @@ export function confirmationPayload(order: Order, siteUrl: string): EmailPayload
         regenerated every time you open it, so this email keeps working.
       </p>
 
-      ${btn(`${site.origin}/order/${encodeURIComponent(order.id)}`, "Download your book →")}
+      ${btn(`${site.origin}/order/${encodeURIComponent(order.id)}`, "Download your files →")}
 
       <p style="margin:14px 0 30px;font-size:13px;color:${BRAND.soft};">
         Or copy this link: <a href="${orderUrl}" style="color:${BRAND.brand};">${orderUrl}</a>
@@ -162,7 +162,7 @@ export function confirmationPayload(order: Order, siteUrl: string): EmailPayload
         Your copy carries a non-secret licence identifier. It is licensed for your personal
         use &mdash; please do not redistribute it.
       </p>`,
-      `Your copy of ${order.items[0]?.title ?? "your book"} is ready to download.`,
+      `Your copy of ${order.items[0]?.title ?? "your purchase"} is ready to download.`,
     ),
   };
 }

@@ -136,10 +136,10 @@ export function priceCart(lines: CartLine[], offers: Offer[], ctx: { now: Date; 
     else if (offer.combinable) {
       const r = evaluate(offer, base.map((l) => ({ ...l, price: l.price - (discount.get(l.slug) ?? 0) })));
       if (r.saving > 0) { apply(offer, r); coupon = { code, ok: true, message: null }; }
-      else coupon = { code, ok: false, message: "This code does not apply to these books." };
+      else coupon = { code, ok: false, message: "This code does not apply to these products." };
     } else {
       const r = evaluate(offer, base), automatic = applied.reduce((s, a) => s + a.saving, 0);
-      if (r.saving === 0) coupon = { code, ok: false, message: "This code does not apply to these books." };
+      if (r.saving === 0) coupon = { code, ok: false, message: "This code does not apply to these products." };
       else if (r.saving <= automatic) coupon = { code, ok: false, message: "A better offer is already applied." };
       else {
         applied = []; for (const l of lines) { discount.set(l.slug, 0); names.set(l.slug, []); }

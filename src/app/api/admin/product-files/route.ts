@@ -17,7 +17,7 @@ export const maxDuration = 60;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const reply = (error: string, status: number) => NextResponse.json({ error }, { status });
 
-// Admin book files go browser -> private Blob directly (no 4.5 MB function body limit); "finalize" re-reads and checks them.
+// Admin product files go browser -> private Blob directly (no 4.5 MB function body limit); "finalize" re-reads and checks them.
 export async function POST(req: Request) {
   if (!checkOrigin(req)) return reply("Origin rejected.", 403);
   if (!(await isAdmin())) return reply("Admin sign-in required.", 401);
@@ -30,8 +30,8 @@ export async function POST(req: Request) {
     if (!token) return reply("File storage is not set up yet. Connect a private Vercel Blob store to this project.", 503);
     if (input.action === "ticket") {
       const book = await sql`select third_party from books where slug=${slug}`;
-      if (!book.length) return reply("Book not found.", 404);
-      if (book[0].third_party) return reply("Author books change files through their author submission.", 409);
+      if (!book.length) return reply("Product not found.", 404);
+      if (book[0].third_party) return reply("Developer submissions change files through their submission.", 409);
       const pathname = `admin/books/${slug}/${randomUUID()}-${kind}`;
       const clientToken = await generateClientTokenFromReadWriteToken({ token, pathname,
         allowedContentTypes: kind === "cover" ? ["image/jpeg", "image/png", "image/webp"] : PRODUCT_FILE_CONTENT_TYPES,
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
       } catch (error) { throw error instanceof SaleError ? error : new SaleError("The cover image could not be read."); }
       await recordBookCover(sql, { slug, bytes, pathname });
     }
-    for (const path of ["/", "/admin/books", `/books/${slug}`, "/search"]) revalidatePath(path);
+    for (const path of ["/", "/admin/products", `/admin/products/${slug}`, `/products/${slug}`, "/search"]) revalidatePath(path);
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof SaleError) return reply(error.message, error.status);

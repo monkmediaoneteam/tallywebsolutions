@@ -8,14 +8,14 @@ import { FILE_ACCEPT, FILE_TYPE_LIST, FILE_TYPES, fileTypeFromName } from "@/lib
 
 const MAX = 5 * 1024 * 1024;
 
-// Uploads go straight from the browser to private storage; the server then re-reads and checks the file.
-export default function BookUpload({ slug, kind }: { slug: string; kind: "pdf" | "cover" }) {
+// kind "pdf" is the product file of any supported type (the name is kept for the upload API). Uploads go straight from the browser to private storage; the server then re-reads and checks the file.
+export default function ProductUpload({ slug, kind }: { slug: string; kind: "pdf" | "cover" }) {
   const router = useRouter();
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   async function post(body: object) {
-    const response = await fetch("/api/admin/book-files", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const response = await fetch("/api/admin/product-files", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.error || "Upload failed. Try again.");
     return result;
@@ -33,7 +33,7 @@ export default function BookUpload({ slug, kind }: { slug: string; kind: "pdf" |
         onUploadProgress: ({ percentage }) => setStatus(`Uploading ${Math.round(percentage)}%`) });
       setStatus("Checking the file...");
       await post({ action: "finalize", slug, kind, fileType, pathname: ticket.pathname });
-      setStatus(kind === "pdf" ? "File saved. Put the add-on on sale when ready." : "Cover saved.");
+      setStatus(kind === "pdf" ? "File saved. Put the product on sale when ready." : "Cover saved.");
       router.refresh();
     } catch (e) { setError(e instanceof Error ? e.message : "Upload failed."); setStatus(""); }
     finally { setBusy(false); }

@@ -20,16 +20,16 @@ export const isPrivateBlobUrl = (value: string) => {
   catch { return false; }
 };
 
-// What the Books screen shows before anyone clicks "Put on sale".
+// What the Products screen shows before anyone clicks "Put on sale".
 export async function fileCheck(root: string, fileUrl: string | null, recordedSha: string | null = null): Promise<{ ok: boolean; reason: string | null }> {
-  if (!fileUrl) return { ok: false, reason: "No file attached yet. Upload the book PDF." };
+  if (!fileUrl) return { ok: false, reason: "No file attached yet. Upload the product file." };
   if (isPrivateBlobUrl(fileUrl)) return /^[a-f0-9]{64}$/.test(recordedSha ?? "") ? { ok: true, reason: null } : { ok: false, reason: "The uploaded file has no checksum. Upload it again." };
-  if (!fileUrl.startsWith("private:")) return { ok: false, reason: "The file is stored somewhere admin cannot check. Upload the book PDF here instead." };
+  if (!fileUrl.startsWith("private:")) return { ok: false, reason: "The file is stored somewhere admin cannot check. Upload the product file here instead." };
   const file = fileUrl.slice(8);
   try {
     const { size } = await stat(path.join(root, "private", "books", file));
-    return size < MIN_BYTES ? { ok: false, reason: `${file} is a ${size}-byte placeholder. Upload the real PDF.` } : { ok: true, reason: null };
-  } catch { return { ok: false, reason: `private/books/${file} is missing. Upload the book PDF.` }; }
+    return size < MIN_BYTES ? { ok: false, reason: `${file} is a ${size}-byte placeholder. Upload the real file.` } : { ok: true, reason: null };
+  } catch { return { ok: false, reason: `private/books/${file} is missing. Upload the product file.` }; }
 }
 
 // First-party books go on sale from admin. For files shipped in private/books the server reads the file and records
@@ -37,10 +37,10 @@ export async function fileCheck(root: string, fileUrl: string | null, recordedSh
 export async function putOnSale(sql: Sql, { slug, root }: { slug: string; root: string }) {
   const rows = await sql`select slug, price_inr, file_url, file_sha256, third_party from books where slug=${slug}`;
   const book = rows[0] as { price_inr: number; file_url: string | null; file_sha256: string | null; third_party: boolean | null } | undefined;
-  if (!book) throw new SaleError("Book not found.", 404);
-  if (book.third_party) throw new SaleError("Author books go on sale through their author submission review.", 409);
-  if (!(book.price_inr > 0)) throw new SaleError("Set a regular price before putting the book on sale.");
-  if (!book.file_url) throw new SaleError("Attach the book file before putting it on sale.");
+  if (!book) throw new SaleError("Product not found.", 404);
+  if (book.third_party) throw new SaleError("Developer submissions go on sale through their author submission review.", 409);
+  if (!(book.price_inr > 0)) throw new SaleError("Set a regular price before putting the product on sale.");
+  if (!book.file_url) throw new SaleError("Attach the product file before putting it on sale.");
   let sha: string;
   let file: string;
   if (isPrivateBlobUrl(book.file_url)) {
@@ -48,13 +48,13 @@ export async function putOnSale(sql: Sql, { slug, root }: { slug: string; root: 
     sha = book.file_sha256!;
     file = new URL(book.file_url).pathname.slice(1);
   } else {
-    if (!book.file_url.startsWith("private:")) throw new SaleError("Upload the book PDF here before putting it on sale.", 409);
+    if (!book.file_url.startsWith("private:")) throw new SaleError("Upload the product file here before putting it on sale.", 409);
     file = book.file_url.slice(8);
-    if (!/^[^\\/:]+$/.test(file) || file === "." || file === "..") throw new SaleError("The book's file name is invalid.");
+    if (!/^[^\\/:]+$/.test(file) || file === "." || file === "..") throw new SaleError("The product's file name is invalid.");
     let bytes: Buffer;
     try { bytes = await readFile(path.join(root, "private", "books", file)); }
     catch { throw new SaleError(`private/books/${file} is missing from the deployment.`, 409); }
-    if (bytes.length < MIN_BYTES) throw new SaleError(`${file} is a ${bytes.length}-byte placeholder. Upload the real PDF first.`, 409);
+    if (bytes.length < MIN_BYTES) throw new SaleError(`${file} is a ${bytes.length}-byte placeholder. Upload the real file first.`, 409);
     sha = sha256(bytes);
   }
   const changed = await sql`with changed as (
@@ -62,7 +62,7 @@ export async function putOnSale(sql: Sql, { slug, root }: { slug: string; root: 
   ), audit as (insert into events(order_id,type,payload)
     select null,'admin.book.put_on_sale',jsonb_build_object('slug',slug,'file',${file}::text,'file_sha256',${sha}::text) from changed)
   select slug from changed`;
-  if (changed.length !== 1) throw new SaleError("The book changed while saving. Reload and try again.", 409);
+  if (changed.length !== 1) throw new SaleError("The product changed while saving. Reload and try again.", 409);
   return { sha };
 }
 
@@ -71,7 +71,7 @@ export async function setRegularPrice(sql: Sql, { slug, rupees }: { slug: string
   const paise = Math.round(Number(rupees) * 100);
   if (!/^\d+(?:\.\d{1,2})?$/.test(rupees) || !Number.isSafeInteger(paise) || paise <= 0 || paise > 100000000) throw new SaleError("Enter a price in rupees, like 1 or 249.50.");
   const rows = await sql`select sale_price_inr from books where slug=${slug}`;
-  if (!rows.length) throw new SaleError("Book not found.", 404);
+  if (!rows.length) throw new SaleError("Product not found.", 404);
   const sale = rows[0].sale_price_inr as number | null;
   if (sale != null && sale >= paise) throw new SaleError("The regular price must stay above the sale price. Change the offer first.");
   await sql`with changed as (update books set price_inr=${paise} where slug=${slug} returning slug),
@@ -79,11 +79,16 @@ export async function setRegularPrice(sql: Sql, { slug, rupees }: { slug: string
     select slug from changed`;
 }
 
-// Product files are checked by their bytes: PDFs by header, EPUB and ZIP by the zip header, text types must be plain text.
+// Text files may be saved as UTF-8 or, as Tally Developer often does, UTF-16 with a byte-order mark.
+// UTF-16 text is full of zero bytes, so only text without a UTF-16 mark is checked for them.
+const isUtf16 = (bytes: Buffer) => bytes.length >= 2 && ((bytes[0] === 0xff && bytes[1] === 0xfe) || (bytes[0] === 0xfe && bytes[1] === 0xff));
+
+// Product files are checked by their bytes: PDFs by header, EPUB and ZIP by the zip header, TDL and TXT must be text.
+// TCP files are compiled Tally programs (binary), so any non-empty file is accepted for them.
 function checkProductFile(bytes: Buffer, type: FileType) {
   if (type === "pdf" && bytes.subarray(0, 5).toString("ascii") !== "%PDF-") throw new SaleError("That file is not a PDF.");
   if ((type === "epub" || type === "zip") && bytes.subarray(0, 4).toString("hex") !== "504b0304") throw new SaleError(`That file is not a ${FILE_TYPES[type].label}.`);
-  if ((type === "tdl" || type === "tcp" || type === "txt") && bytes.includes(0)) throw new SaleError(`That file is not a plain-text ${FILE_TYPES[type].label}.`);
+  if ((type === "tdl" || type === "txt") && !isUtf16(bytes) && bytes.includes(0)) throw new SaleError(`That file is not a plain-text ${FILE_TYPES[type].label}.`);
 }
 
 // Checks the uploaded bytes themselves, not the browser's claimed type.
@@ -102,8 +107,8 @@ export function validateAdminUpload(bytes: Buffer, kind: "pdf" | "cover", fileTy
 
 const firstParty = async (sql: Sql, slug: string) => {
   const rows = await sql`select third_party from books where slug=${slug}`;
-  if (!rows.length) throw new SaleError("Book not found.", 404);
-  if (rows[0].third_party) throw new SaleError("Author books change files through their author submission.", 409);
+  if (!rows.length) throw new SaleError("Product not found.", 404);
+  if (rows[0].third_party) throw new SaleError("Developer submissions change files through their submission.", 409);
 };
 
 // A new book file replaces the old one and takes the book off sale until someone puts it on sale again.
@@ -121,12 +126,12 @@ export async function recordBookFile(sql: Sql, { slug, url, bytes, pathname, fil
   return { sha };
 }
 
-// Covers are public, but the blob store is private, so the store serves them through /api/book-cover.
+// Covers are public, but the blob store is private, so the store serves them through /api/product-cover.
 export async function recordBookCover(sql: Sql, { slug, bytes, pathname }: { slug: string; bytes: Buffer; pathname: string }) {
   await firstParty(sql, slug);
   validateAdminUpload(bytes, "cover");
   const version = sha256(bytes).slice(0, 12);
-  const coverPath = `/api/book-cover/${slug}/${version}`;
+  const coverPath = `/api/product-cover/${slug}/${version}`;
   await sql`with changed as (
     update books set cover=${coverPath}, facts=coalesce(facts, '{}'::jsonb) || jsonb_build_object('_cover_blob', ${pathname}::text)
     where slug=${slug} and not coalesce(third_party, false) returning slug

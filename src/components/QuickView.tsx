@@ -25,7 +25,7 @@ export default function QuickView({ book, enabled }: { book: PublicBook; enabled
           <Price book={book} size="page" />{blurb && <p className="qv-blurb">{blurb}</p>}
           <div className="qv-actions"><AddToCart slug={book.slug} title={book.title} enabled={enabled} saleable={book.saleable} saveable={book.saveable} />
             <WishlistButton slug={book.slug} title={book.title} variant="page" /></div>
-          <Link className="text-link" href={`/books/${encodeURIComponent(book.slug)}`}>View full details</Link></div></div>
+          <Link className="text-link" href={`/products/${encodeURIComponent(book.slug)}`}>View full details</Link></div></div>
     </dialog>
   </>;
 }

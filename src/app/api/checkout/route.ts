@@ -40,7 +40,7 @@ export async function POST(req: Request) {
   if (!Array.isArray(slugs) || slugs.length < 1 || slugs.length > 20 ||
       slugs.some(s => typeof s !== "string" || !/^[a-z0-9][a-z0-9_-]{0,100}$/.test(s)) ||
       new Set(slugs).size !== slugs.length || (body.slugs !== undefined && body.slug !== undefined))
-    return reply("Choose between one and twenty distinct books.", 400);
+    return reply("Choose between one and twenty distinct products.", 400);
   if (typeof body.name !== "string" || typeof body.email !== "string" || typeof body.phone !== "string" ||
       body.email.length > 254 || body.phone.length > 32) return reply("Invalid customer details.", 400);
   if ((body.coupon !== undefined && (typeof body.coupon !== "string" || body.coupon.length > 40)) ||
@@ -110,7 +110,7 @@ export async function POST(req: Request) {
     if ((recent[0]?.n || 0) >= 10) return reply("Too many attempts. Please try again later.", 429);
     const books = await Promise.all((slugs as string[]).map(getBook));
     // Demo preview titles show prices but can never be bought.
-    if (books.some(book => !book || !isSaleable(book) || book.facts?._demo === "true")) return reply("A selected book is not available for sale.", 409);
+    if (books.some(book => !book || !isSaleable(book) || book.facts?._demo === "true")) return reply("A selected product is not available for sale.", 409);
     for (const book of books) {
       if (!book?.file_url || !normaliseFileType(book.file_format)) return reply("Purchased file is not configured for delivery.", 503);
       if (typeof book.file_sha256 !== "string" || book.file_sha256.length !== 64 || !/^[a-f0-9]{64}$/i.test(book.file_sha256))

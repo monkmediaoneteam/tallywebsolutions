@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   const reader = await getReader();
   if (!reader) return NextResponse.json({ error: "Sign in to sync your wishlist." }, { status: 401 });
   const text = await req.text();
-  if (text.length > 20000) return NextResponse.json({ error: "Too many books." }, { status: 413 });
+  if (text.length > 20000) return NextResponse.json({ error: "Too many products." }, { status: 413 });
   let slugs: string[] = [];
   try { slugs = parseWishlist(JSON.stringify(JSON.parse(text)?.slugs ?? [])); } catch { return NextResponse.json({ error: "Bad request." }, { status: 400 }); }
   return NextResponse.json({ slugs: await mergeWishlist(reader.id, slugs) });
