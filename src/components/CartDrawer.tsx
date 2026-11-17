@@ -41,7 +41,7 @@ export default function CartDrawer() {
       : !lines ? <ul className="drawer-lines" aria-busy="true">{[0, 1].map((i) => <li key={i} className="skeleton-row"><span className="skeleton skeleton-cover" /><span className="skeleton skeleton-line" /></li>)}
           <li className="sr-only" role="status">Loading your bag</li></ul>
       : <ul className="drawer-lines">{lines.map((l) => <li key={l.slug}><span className="drawer-cover"><Cover src={l.cover} title={l.title} sizes="56px" /></span>
-          <span className="drawer-text"><Link href={`/books/${encodeURIComponent(l.slug)}`} onClick={cart.closeDrawer}>{l.title}</Link>
+          <span className="drawer-text"><Link href={`/products/${encodeURIComponent(l.slug)}`} onClick={cart.closeDrawer}>{l.title}</Link>
             <span>{l.saleable ? <>{l.onSale && <s>{rupees(l.regular)}</s>} <strong>{rupees(l.price)}</strong></> : l.regular > 0 ? <><strong>{rupees(l.regular)}</strong> · Not yet on sale</> : "Not yet on sale"}</span></span>
           <button type="button" className="icon-plain" onClick={() => cart.remove(l.slug)} aria-label={`Remove ${l.title} from bag`}><Trash2 size={17} aria-hidden="true" /></button></li>)}</ul>}
     <div className="drawer-foot">

@@ -17,7 +17,7 @@ assert.deepEqual(await fileCheck(root, 'private:real.pdf'), { ok: true, reason: 
 assert.match((await fileCheck(root, 'private:sample.pdf')).reason, /placeholder/);
 assert.match((await fileCheck(root, 'private:gone.pdf')).reason, /missing/);
 assert.match((await fileCheck(root, null)).reason, /No file/);
-assert.match((await fileCheck(root, 'https://files.example.com/x.pdf')).reason, /Upload the book PDF/);
+assert.match((await fileCheck(root, 'https://files.example.com/x.pdf')).reason, /Upload the product file/);
 
 const { db } = await createIsolatedDatabase();
 const sql = async (parts, ...values) => (await db.query(parts.reduce((s, p, i) => s + (i ? `$${i}` : '') + p, ''), values)).rows;
@@ -36,11 +36,11 @@ try {
   assert.equal(audit.length, 1);
   assert.equal(audit[0].payload.slug, 'real-book');
 
-  await assert.rejects(putOnSale(sql, { slug: 'placeholder-book', root }), (e) => e instanceof SaleError && /real PDF/.test(e.message));
+  await assert.rejects(putOnSale(sql, { slug: 'placeholder-book', root }), (e) => e instanceof SaleError && /real file/.test(e.message));
   assert.equal((await book('placeholder-book')).release_approved, false, 'a placeholder never goes on sale');
-  await assert.rejects(putOnSale(sql, { slug: 'no-file', root }), /attach the book file/i);
+  await assert.rejects(putOnSale(sql, { slug: 'no-file', root }), /attach the product file/i);
   await assert.rejects(putOnSale(sql, { slug: 'free-book', root }), /price/i);
-  await assert.rejects(putOnSale(sql, { slug: 'remote-book', root }), /Upload the book PDF/i);
+  await assert.rejects(putOnSale(sql, { slug: 'remote-book', root }), /Upload the product file/i);
   await assert.rejects(putOnSale(sql, { slug: 'author-book', root }), /author submission/i, 'author books keep their review process');
   await assert.rejects(putOnSale(sql, { slug: 'missing', root }), (e) => e.status === 404);
 
@@ -64,6 +64,11 @@ try {
   assert.throws(() => validateAdminUpload(png, 'pdf'), /PDF/);
   assert.throws(() => validateAdminUpload(pdf, 'cover'), /image/);
   assert.throws(() => validateAdminUpload(Buffer.alloc(0), 'pdf'), SaleError);
+  // TCP files are compiled (binary) Tally programs; TDL source may be saved as UTF-16 with a byte-order mark.
+  assert.equal(validateAdminUpload(Buffer.from([0x54, 0x43, 0x50, 0, 1, 0, 0, 2]), 'pdf', 'tcp'), 'application/octet-stream');
+  assert.equal(validateAdminUpload(Buffer.from('﻿[Part: Test]', 'utf16le'), 'pdf', 'tdl'), 'text/plain');
+  assert.equal(validateAdminUpload(Buffer.from('[Part: Test]'), 'pdf', 'tdl'), 'text/plain');
+  assert.throws(() => validateAdminUpload(Buffer.from([0x50, 0, 0x41, 0]), 'pdf', 'tdl'), /plain-text/);
   const blobUrl = 'https://abc123.private.blob.vercel-storage.com/admin/books/placeholder-book/u1-pdf';
   const uploaded = await recordBookFile(sql, { slug: 'placeholder-book', url: blobUrl, bytes: pdf, pathname: 'admin/books/placeholder-book/u1-pdf' });
   const afterUpload = (await sql`select file_url, file_sha256, release_approved, file_format from books where slug='placeholder-book'`)[0];
@@ -74,11 +79,11 @@ try {
   assert.equal((await book('placeholder-book')).release_approved, true, 'an uploaded file can go on sale');
   await recordBookFile(sql, { slug: 'placeholder-book', url: blobUrl, bytes: pdf, pathname: 'admin/books/placeholder-book/u2-pdf' });
   assert.equal((await book('placeholder-book')).release_approved, false, 'a new file takes the book off sale until released again');
-  await assert.rejects(recordBookFile(sql, { slug: 'author-book', url: blobUrl, bytes: pdf, pathname: 'x' }), /author/i);
+  await assert.rejects(recordBookFile(sql, { slug: 'author-book', url: blobUrl, bytes: pdf, pathname: 'x' }), /submission/i);
   const cover = await recordBookCover(sql, { slug: 'real-book', bytes: png, pathname: 'admin/books/real-book/c1-cover' });
   const afterCover = (await sql`select cover, facts->>'_cover_blob' as blob from books where slug='real-book'`)[0];
   assert.equal(afterCover.cover, cover.path);
-  assert.match(cover.path, /^\/api\/book-cover\/real-book\/[a-f0-9]{12}$/);
+  assert.match(cover.path, /^\/api\/product-cover\/real-book\/[a-f0-9]{12}$/);
   assert.equal(afterCover.blob, 'admin/books/real-book/c1-cover');
   assert.equal((await sql`select count(*)::int n from events where type in ('admin.book.file_uploaded','admin.book.cover_uploaded')`)[0].n, 3);
 } finally { await db.close(); }

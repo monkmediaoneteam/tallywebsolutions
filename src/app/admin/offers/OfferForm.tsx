@@ -36,11 +36,11 @@ export default function OfferForm({ offer, books, collections, categories }: {
       {kind === "bxgy" && <><label className="text-sm">Buy<input name="buy_qty" inputMode="numeric" required value={draft.buy} onChange={set("buy")} className={input} /></label>
         <label className="text-sm">Get<input name="get_qty" inputMode="numeric" required value={draft.get} onChange={set("get")} className={input} /></label>
         <label className="text-sm">at % off (100 = free)<input name="get_percent" inputMode="numeric" value={draft.getPct} onChange={set("getPct")} className={input} /></label></>}
-      {kind === "bundle" && <><label className="text-sm">Any (books)<input name="bundle_qty" inputMode="numeric" required value={draft.qty} onChange={set("qty")} className={input} /></label>
+      {kind === "bundle" && <><label className="text-sm">Any (products)<input name="bundle_qty" inputMode="numeric" required value={draft.qty} onChange={set("qty")} className={input} /></label>
         <label className="text-sm">for ₹<input name="bundle_price" inputMode="decimal" required value={draft.price} onChange={set("price")} className={input} /></label></>}
     </div>
     <fieldset className="grid gap-3"><legend className="mb-1 text-sm font-medium">Applies to</legend>
-      <div className="flex flex-wrap gap-2">{([["all", "All add-ons"], ["books", "Chosen books"], ["collection", "A collection"], ["category", "A subject"], ["order", "Whole order"]] as const).map(([v, label]) =>
+      <div className="flex flex-wrap gap-2">{([["all", "All add-ons"], ["books", "Chosen products"], ["collection", "A collection"], ["category", "A subject"], ["order", "Whole order"]] as const).map(([v, label]) =>
         <label key={v} className={`chip cursor-pointer ${scope === v ? "!bg-forest !text-cream" : ""}`}><input type="radio" name="scope" value={v} checked={scope === v} onChange={() => setScope(v)} className="sr-only" />{label}</label>)}</div>
       {scope === "books" && <BookPicker books={books} selected={offer?.scope === "books" ? offer.targets : []} />}
       {scope === "collection" && <select name="collection" required defaultValue={offer?.scope === "collection" ? offer.targets[0] : ""} className="field-input">
@@ -54,7 +54,7 @@ export default function OfferForm({ offer, books, collections, categories }: {
         <label className="text-sm">Coupon code (optional)<input name="code" value={draft.code} onChange={set("code")} placeholder="SAVE10" className={`${input} uppercase`} /></label>
         <label className="text-sm">Starts (India time)<input name="starts_at" type="datetime-local" defaultValue={toIndia(offer?.starts_at ?? null)} className={input} /></label>
         <label className="text-sm">Ends (India time)<input name="ends_at" type="datetime-local" defaultValue={toIndia(offer?.ends_at ?? null)} className={input} /></label>
-        <label className="text-sm">Minimum books<input name="min_items" inputMode="numeric" defaultValue={offer?.min_items || ""} className={input} /></label>
+        <label className="text-sm">Minimum products<input name="min_items" inputMode="numeric" defaultValue={offer?.min_items || ""} className={input} /></label>
         <label className="text-sm">Minimum order ₹<input name="min_subtotal" inputMode="decimal" defaultValue={offer?.min_subtotal ? rupees(offer.min_subtotal) : ""} className={input} /></label>
         <label className="text-sm">Priority (ties)<input name="priority" inputMode="numeric" defaultValue={offer?.priority || ""} className={input} /></label>
         <label className="text-sm">Total uses<input name="usage_limit" inputMode="numeric" defaultValue={offer?.usage_limit ?? ""} placeholder="Unlimited" className={input} /></label>

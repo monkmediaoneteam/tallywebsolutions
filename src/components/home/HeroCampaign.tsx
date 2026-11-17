@@ -65,7 +65,7 @@ export default function HeroCampaign({ banners, covers }: { banners: Banner[]; c
             <ul className="ticks">{TICKS.map(([strong, rest]) => <li key={strong}><CircleCheck size={16} aria-hidden="true" /><span><strong>{strong}</strong> {rest}</span></li>)}</ul>
           </div>
           {i === index && shown.length > 0 && <div className="hero-stage" aria-hidden="true">{shown.map((c, k) =>
-            <Link key={c.slug} href={`/books/${encodeURIComponent(c.slug)}`} tabIndex={-1} className={`hero-cover c${k}`}>
+            <Link key={c.slug} href={`/products/${encodeURIComponent(c.slug)}`} tabIndex={-1} className={`hero-cover c${k}`}>
               <Book3D src={c.cover} title={c.title} sizes="(max-width: 900px) 34vw, 200px" priority={k === 0} /></Link>)}</div>}
         </div>
       </div>;

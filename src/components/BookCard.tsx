@@ -8,7 +8,7 @@ import Book3D from "./motion/Book3D";
 import Morph, { morphName } from "./motion/Morph";
 import { isStoreOwned } from "@/lib/store";
 
-const href = (book: PublicBook) => `/books/${encodeURIComponent(book.slug)}`;
+const href = (book: PublicBook) => `/products/${encodeURIComponent(book.slug)}`;
 
 export default function BookCard({ book, enabled, morph = true }: { book: PublicBook; index?: number; enabled: boolean; morph?: boolean }) {
   const cover = <Book3D src={book.cover} title={book.title} sizes="(max-width: 640px) 42vw, 180px" />;

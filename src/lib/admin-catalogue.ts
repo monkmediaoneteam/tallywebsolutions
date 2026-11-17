@@ -54,3 +54,14 @@ export function releaseChecklist(book: Pick<Book, "active" | "price_inr" | "file
     ...(book.third_party ? [{ label: "Rights and commercial terms approved", ok: !!book.rights_approved && !!book.commercial_approved }] : []),
   ];
 }
+
+// One status per product for the admin list and its filter.
+import { PRODUCT_STATUSES, type ProductStatus } from "@/lib/product-status";
+export { PRODUCT_STATUSES };
+export type { ProductStatus };
+
+export function productStatus(book: Parameters<typeof releaseChecklist>[0]): ProductStatus {
+  if (book.third_party) return "submission";
+  if (!book.active) return "hidden";
+  return releaseChecklist(book).every((item) => item.ok) ? "on-sale" : "not-on-sale";
+}

@@ -31,7 +31,7 @@ export function parseOffer(f: FormData): OfferInput {
   const name = text(f, "name");
   if (!name || name.length > 120) throw new OfferError("Give the offer a name (up to 120 characters).");
   const targets = scope === "books" ? f.getAll("book_slugs").map(String) : scope === "collection" ? [text(f, "collection")] : scope === "category" ? [text(f, "category")] : [];
-  if (scope !== "all" && scope !== "order" && !targets.filter(Boolean).length) throw new OfferError("Choose at least one book, collection or subject.");
+  if (scope !== "all" && scope !== "order" && !targets.filter(Boolean).length) throw new OfferError("Choose at least one product, collection or category.");
   let value = 0;
   if (kind === "percent") value = int(f, "value", 1, 90, "Percent off") ?? 0;
   if (kind === "percent" && !value) throw new OfferError("Percent off must be a whole number between 1 and 90.");
@@ -48,7 +48,7 @@ export function parseOffer(f: FormData): OfferInput {
   const status = text(f, "status") === "active" ? "active" : "draft";
   return { id: text(f, "id") || undefined, name, kind, scope, targets: targets.filter(Boolean), value,
     cap: kind === "percent" ? paise(f, "cap", "Cap") : null, buy_qty, get_qty, get_percent: kind === "bxgy" ? int(f, "get_percent", 1, 100, "Get discount") ?? 100 : null,
-    bundle_qty, bundle_price, min_items: int(f, "min_items", 0, 20, "Minimum books") ?? 0, min_subtotal: paise(f, "min_subtotal", "Minimum order") ?? 0,
+    bundle_qty, bundle_price, min_items: int(f, "min_items", 0, 20, "Minimum products") ?? 0, min_subtotal: paise(f, "min_subtotal", "Minimum order") ?? 0,
     code, combinable: f.get("combinable") === "on", first_order_only: f.get("first_order_only") === "on",
     usage_limit: int(f, "usage_limit", 1, 1000000, "Total uses"), per_customer_limit: int(f, "per_customer_limit", 1, 1000, "Uses per customer"),
     priority: int(f, "priority", -100, 100, "Priority") ?? 0, starts_at, ends_at, status };

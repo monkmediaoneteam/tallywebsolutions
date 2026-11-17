@@ -12,8 +12,8 @@ function site({ checkout = 400, token = true, buy = true } = {}) {
     if (url.pathname === '/api/checkout') return Response.json({ error: 'x' }, { status: checkout });
     if (url.pathname === '/api/search/suggest') return Response.json({ books: [{ slug: 'real-book' }], authors: [], categories: [] });
     if (url.pathname === '/admin/login') return html(token ? '<label>Admin password</label>' : '<a>Sign in with email</a>');
-    if (url.pathname === '/') return html('<a href="/books/real-book">Real</a>');
-    if (url.pathname === '/books/real-book') return html(buy ? '<p>₹1</p><button>Buy now</button>' : '<button>Unavailable</button>');
+    if (url.pathname === '/') return html('<a href="/products/real-book">Real</a>');
+    if (url.pathname === '/products/real-book') return html(buy ? '<p>₹1</p><button>Buy now</button>' : '<button>Unavailable</button>');
     return html('<main>ok</main>');
   };
   return { fetchImpl, calls };

@@ -34,7 +34,7 @@ export function validateEmail(raw: string): { ok: true; value: string } | { ok: 
     return {
       ok: false,
       error:
-        "Please use a permanent email address your book is delivered there.",
+        "Please use a permanent email address your files are delivered there.",
     };
   }
   return { ok: true, value };

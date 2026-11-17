@@ -10,10 +10,21 @@ const config: NextConfig = {
   outputFileTracingIncludes: {
     "/api/download": ["./private/books/**"],
     // Admin "Put on sale" reads the file to record its checksum.
-    "/api/admin/book": ["./private/books/**"],
-    "/admin/books": ["./private/books/**"],
+    "/api/admin/products": ["./private/books/**"],
+    "/admin/products": ["./private/books/**"],
     // "Turn on offers" applies this migration from admin.
     "/api/admin/offers": ["./migrations/008-offers.sql"],
+  },
+  // Product pages used to live under /books. Old links, bookmarks and search results keep working.
+  async redirects() {
+    return [
+      { source: "/books/:slug", destination: "/products/:slug", permanent: true },
+      { source: "/admin/books", destination: "/admin/products", permanent: true },
+    ];
+  },
+  // Covers saved before the rename are stored as /api/book-cover/...; serve them from the new route.
+  async rewrites() {
+    return [{ source: "/api/book-cover/:slug/:version", destination: "/api/product-cover/:slug/:version" }];
   },
   async headers() {
     return [

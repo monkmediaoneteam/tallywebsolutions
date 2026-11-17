@@ -10,7 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const books = (await getBooks()).filter(visibleBook);
   const authors = new Set(books.flatMap(book => book.author_slug ? [book.author_slug] : []));
   const paths = ["", '/search', '/publish', "/privacy", "/terms", "/refund-policy", "/delivery-policy",
-    ...books.map(book => `/books/${encodeURIComponent(book.slug)}`), ...[...authors].map(id => `/authors/${encodeURIComponent(id)}`),
+    ...books.map(book => `/products/${encodeURIComponent(book.slug)}`), ...[...authors].map(id => `/authors/${encodeURIComponent(id)}`),
     ...(await getCategories()).map(c => `/category/${encodeURIComponent(c.slug)}`)];
   return paths.map((p) => ({
     url: `${siteUrl()}${p}`,

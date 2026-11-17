@@ -9,7 +9,7 @@ import { isStoreOwned } from "@/lib/store";
 
 // The few-titles layout: the 65f7044 catalogue card, trimmed to what a reader decides on.
 export default function CatalogueEntry({ book, index, enabled, morph = true }: { book: PublicBook; index: number; enabled: boolean; morph?: boolean }) {
-  const href = `/books/${encodeURIComponent(book.slug)}`;
+  const href = `/products/${encodeURIComponent(book.slug)}`;
   const cover = <Book3D src={book.cover} title={book.title} sizes="(max-width: 760px) 60vw, 220px" priority={index === 1} />;
   const chips = [book.file_format, book.pages ? `${book.pages} pages` : null, book.language, book.edition].filter(Boolean) as string[];
   return <article className="entry surface surface-lit reveal" data-book-card>

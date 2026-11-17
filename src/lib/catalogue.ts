@@ -11,18 +11,17 @@ export function bookJsonLd(book: Book, url: string, saleable: boolean, now: Date
   const p = currentPrice(book, now);
   const until = p.onSale && book.sale_ends_at ? new Date(Date.parse(String(book.sale_ends_at)) - 1).toISOString().slice(0, 10) : null;
   return {
-    "@context": "https://schema.org", "@type": "Book", "@id": url, url, name: book.title,
+    // Products are Tally add-ons and software, described as a SoftwareApplication rather than a Book.
+    "@context": "https://schema.org", "@type": "SoftwareApplication", "@id": url, url, name: book.title, applicationCategory: "BusinessApplication", operatingSystem: "Windows (TallyPrime)",
     ...(book.subtitle && { alternativeHeadline: book.subtitle }),
     ...(book.description && { description: book.description }),
     ...(book.cover && { image: absolute(book.cover) }),
-    ...(book.authorship && { author: { "@type": "Person", name: book.authorship } }),
+    ...(book.authorship && { author: { "@type": "Organization", name: book.authorship } }),
     ...(book.publisher && { publisher: { "@type": "Organization", name: book.publisher } }),
-    ...(book.isbn && { isbn: book.isbn }),
-    ...(book.pages && { numberOfPages: book.pages }),
     ...(book.year && { datePublished: String(book.year) }),
     ...(book.language && { inLanguage: book.language }),
-    ...(book.edition && { bookEdition: book.edition }),
-    bookFormat: "https://schema.org/EBook",
+    ...(book.edition && { softwareVersion: book.edition }),
+    ...(book.file_format && { fileFormat: book.file_format }),
     ...(saleable && p.price > 0 && { offers: { "@type": "Offer", url, priceCurrency: "INR", price: (p.price / 100).toFixed(2),
       ...(until && { priceValidUntil: until }), availability: "https://schema.org/InStock" } }),
   };

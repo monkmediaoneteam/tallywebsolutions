@@ -130,7 +130,7 @@ const CardView = load("components/BookCard.tsx", {
 const cardHtml = renderToStaticMarkup(React.createElement(CardView, { book: saleBook, enabled: true }));
 assert.match(cardHtml, /data-book-card/);
 assert.match(cardHtml, /Add to bag/);
-assert.match(cardHtml, /href="\/books\/real-book"/);
+assert.match(cardHtml, /href="\/products\/real-book"/);
 assert.doesNotMatch(cardHtml, /private\/never-expose/);
 const dataCover = renderToStaticMarkup(React.createElement(CardView, { book: { ...saleBook, cover: "data:image/svg+xml;utf8,%3Csvg%3E" }, enabled: true }));
 assert.match(dataCover, /src="data:image\/svg\+xml/);
@@ -167,7 +167,7 @@ const { jsonLdHtml, bookJsonLd } = load("lib/catalogue.ts", { "./access-policy":
 const hostile = { name: "</script><script>alert(1)</script> & <!-- \u2028\u2029" };
 assert.doesNotMatch(jsonLdHtml(hostile), /[<>&\u2028\u2029]/);
 assert.deepEqual(JSON.parse(jsonLdHtml(hostile)), hostile);
-assert.equal("offers" in bookJsonLd({ ...record, cover: "/assets/c.png" }, "https://store.example/books/real-book", false), false);
+assert.equal("offers" in bookJsonLd({ ...record, cover: "/assets/c.png" }, "https://store.example/products/real-book", false), false);
 assert.equal(bookJsonLd({ ...record, cover: "/assets/c.png" }, "u", true).offers.price, "1500.00");
 assert.equal(bookJsonLd({ ...record, cover: "/assets/c.png" }, "u", true).image, "https://store.example/assets/c.png");
 const ld = bookJsonLd({ ...record, cover: "/assets/c.png", price_inr: 29900, sale_price_inr: 25200, sale_ends_at: "2026-10-20T00:00:00+05:30" }, "u", true, new Date("2026-10-15T00:00:00Z"));
@@ -187,7 +187,7 @@ assert.equal(checkoutError(400, "Please enter your full name.").field, "name");
 assert.equal(checkoutError(400, "Enter a valid email address.").field, "email");
 assert.equal(checkoutError(400, "That is not a valid mobile number.").field, "phone");
 assert.match(checkoutError(429, "rate_limit").message, /wait/);
-assert.match(checkoutError(409, "A selected book is not available for sale.").message, /review your selection/);
+assert.match(checkoutError(409, "A selected product is not available for sale.").message, /review your selection/);
 assert.doesNotMatch(checkoutError(403, "Invalid origin.").message, /origin/);
 const render = (props) => renderToStaticMarkup(React.createElement(CheckoutForm, { books: [book], ...props }));
 assert.match(render({ enabled: true }), /Your bag is empty/);
@@ -202,7 +202,7 @@ assert.match(render({ enabled: true, books: [{ ...book, saleable: false }] }), /
 cart = { ...cart, slugs: [] };
 assert.match(render({ enabled: true, initialSlug: book.slug }), /Checking prices/);
 assert.match(render({ enabled: true, initialSlug: "missing-title" }), /Payment unavailable/);
-assert.match(render({ enabled: true, initialSlug: book.slug, books: [pendingBook] }), /href="\/books\/real-book">View add-on details/);
+assert.match(render({ enabled: true, initialSlug: book.slug, books: [pendingBook] }), /href="\/products\/real-book">View add-on details/);
 
 let loginState = "sent";
 const Login = load("app/(store)/login/LoginForm.tsx", { react: { ...React, useState: () => [loginState, value => { loginState = value; }] } }).default;
@@ -386,8 +386,8 @@ async function checkHomepage() {
   const sitemap = load("app/sitemap.ts", { "@/lib/db": { getBooks: async () => [record, { ...record, slug: "unapproved", third_party: true, release_approved: false }] },
     "@/components/book-data": load("components/book-data.ts"), "@/lib/store-data": { getCategories: async () => [{ slug: "science" }] } }).default;
   const urls = (await sitemap()).map(item => item.url).join("\n");
-  assert.match(urls, /books\/real-book/);
-  assert.doesNotMatch(urls, /books\/unapproved/);
+  assert.match(urls, /products\/real-book/);
+  assert.doesNotMatch(urls, /products\/unapproved/);
   assert.match(urls, /category\/science/);
   const Header = load("components/StoreHeader.tsx", { "next/navigation": { usePathname: () => "/", useRouter: () => ({ push() {} }) } }).default;
   const previews = { fiction: [{ slug: "real-book", title: "Actual title", cover: "/assets/book1.png" }] };

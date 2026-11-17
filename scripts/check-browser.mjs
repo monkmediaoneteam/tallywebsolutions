@@ -9,7 +9,7 @@ assert.ok(['localhost', '127.0.0.1'].includes(new URL(base).hostname), 'Browser 
 const output = new URL('../scratch/visual-checks/', import.meta.url);
 await mkdir(output, { recursive: true });
 const sizes = [320, 390, 768, 1024, 1440, 1920];
-const routes = ['/', '/search', '/category/science', '/books/demo-the-monsoon-ledger', '/wishlist', '/books/researching-research-for-ayurveda', '/books/integrative-perspectives', '/cart', '/checkout?book=researching-research-for-ayurveda', '/publish', '/login', '/privacy', '/order/unknown'];
+const routes = ['/', '/search', '/category/science', '/products/demo-the-monsoon-ledger', '/wishlist', '/products/researching-research-for-ayurveda', '/products/integrative-perspectives', '/cart', '/checkout?book=researching-research-for-ayurveda', '/publish', '/login', '/privacy', '/order/unknown'];
 const failures = [];
 for (const [name, engine] of Object.entries({ chromium, firefox, webkit })) {
   if (process.env.BROWSERS && !process.env.BROWSERS.split(',').includes(name)) continue;
@@ -47,14 +47,14 @@ for (const [name, engine] of Object.entries({ chromium, firefox, webkit })) {
           for (const v of copyViolations(copy)) failures.push(`${name}: homepage copy ${v}`);
           await page.mouse.move(0, 0);
         }
-        const shots = { '/': 'home', '/books/demo-the-monsoon-ledger': 'book', '/search': 'search' };
+        const shots = { '/': 'home', '/products/demo-the-monsoon-ledger': 'book', '/search': 'search' };
         if (name === 'chromium' && shots[route]) {
           await page.screenshot({ path: fileURLToPath(new URL(`${shots[route]}-${width}.png`, output)), fullPage: true });
         }
       }
       console.log(`${name}: ${width}px routes checked`);
     }
-    for (const route of ['/', '/search', '/category/science', '/books/demo-the-monsoon-ledger', '/cart', '/wishlist', '/login', '/publish']) {
+    for (const route of ['/', '/search', '/category/science', '/products/demo-the-monsoon-ledger', '/cart', '/wishlist', '/login', '/publish']) {
       await page.goto(base + route, { waitUntil: 'networkidle' });
       const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
       for (const violation of result.violations) failures.push(`${name}: accessibility ${route}: ${violation.id}: ${violation.nodes.map(node => node.target).join(',')}`);
@@ -62,7 +62,7 @@ for (const [name, engine] of Object.entries({ chromium, firefox, webkit })) {
     await page.goto(base + '/search?q=nonexistent-title');
     await expect(page.getByRole('heading', { name: 'No add-ons match these filters' })).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(base + '/books/researching-research-for-ayurveda');
+    await page.goto(base + '/products/researching-research-for-ayurveda');
     await expect(page.getByText('Ordering opens soon.', { exact: false })).toBeVisible();
     await page.getByRole('button', { name: 'Save to bag: Researching Research for Ayurveda' }).click();
     await expect(page.getByRole('dialog', { name: /Your bag/ })).toBeVisible();
@@ -98,7 +98,7 @@ for (const [name, engine] of Object.entries({ chromium, firefox, webkit })) {
     await expect(page).toHaveURL(/#main$/);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(base, { waitUntil: 'networkidle' });
-    await page.getByRole('combobox', { name: /Search books/ }).fill('monsoon led');
+    await page.getByRole('combobox', { name: /Search products/ }).fill('monsoon led');
     await expect(page.getByRole('listbox', { name: 'Suggestions' })).toBeVisible();
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Enter');

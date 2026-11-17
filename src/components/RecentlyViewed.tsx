@@ -23,7 +23,7 @@ export default function RecentlyViewed({ current }: { current: string }) {
       .then((r) => r.ok ? r.json() : Promise.reject()).then((d: { books: Item[] }) => setItems(d.books)).catch(() => {});
   }, [current]);
   if (!items.length) return null;
-  return <div className="section"><Carousel title="Recently viewed">{items.map((b) => <Link key={b.slug} href={`/books/${encodeURIComponent(b.slug)}`} className="product-card recent-card">
+  return <div className="section"><Carousel title="Recently viewed">{items.map((b) => <Link key={b.slug} href={`/products/${encodeURIComponent(b.slug)}`} className="product-card recent-card">
     <span className="card-cover"><Cover src={b.cover} title={b.title} sizes="160px" /></span>
     <span className="card-body"><span className="recent-title">{b.title}</span>{b.saleable && b.price > 0 && <strong>{rupees(b.price)}</strong>}</span></Link>)}</Carousel></div>;
 }

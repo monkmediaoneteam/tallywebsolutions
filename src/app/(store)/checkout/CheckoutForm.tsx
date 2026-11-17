@@ -19,11 +19,11 @@ const customerErrors: Record<string, { message: string; field?: Field }> = {
   "That name is too long.": { message: "Use no more than 100 characters for your name.", field: "name" },
   "Email is required.": { message: "Enter your email address.", field: "email" },
   "Enter a valid email address.": { message: "Enter a valid email address.", field: "email" },
-  "Please use a permanent email address your book is delivered there.": { message: "Use a permanent email address so you can receive your add-on.", field: "email" },
+  "Please use a permanent email address your files are delivered there.": { message: "Use a permanent email address so you can receive your add-on.", field: "email" },
   "Phone number is required.": { message: "Enter your mobile number.", field: "phone" },
   "Enter a 10-digit Indian mobile number.": { message: "Enter a 10-digit Indian mobile number.", field: "phone" },
   "That is not a valid mobile number.": { message: "Enter a valid Indian mobile number.", field: "phone" },
-  "A selected book is not available for sale.": { message: "A selected edition is no longer available to buy. Please review your selection." },
+  "A selected product is not available for sale.": { message: "A selected edition is no longer available to buy. Please review your selection." },
   "This order was refunded.": { message: "This order has been refunded. Please review it in your library." },
 };
 
@@ -101,7 +101,7 @@ export default function CheckoutForm({ books, initialSlug, enabled }: { books: P
     <div className="checkout-layout">
       <form onSubmit={pay} className="checkout-form" aria-label="Customer details">
         {!enabled && <p className="purchase-paused">Online ordering is currently unavailable. <Link className="underline" href="/search">Continue browsing</Link> or return later.</p>}
-        {enabled && unavailable && <p className="purchase-paused">{slugs.length > 20 ? "Choose up to twenty add-ons per checkout." : "A selected edition is not currently available to buy."} <Link className="underline" href={initialSlug ? `/books/${encodeURIComponent(initialSlug)}` : "/cart"}>{initialSlug ? "View add-on details" : "Review your bag"}</Link>.</p>}
+        {enabled && unavailable && <p className="purchase-paused">{slugs.length > 20 ? "Choose up to twenty add-ons per checkout." : "A selected edition is not currently available to buy."} <Link className="underline" href={initialSlug ? `/products/${encodeURIComponent(initialSlug)}` : "/cart"}>{initialSlug ? "View add-on details" : "Review your bag"}</Link>.</p>}
         {([{ key: "name", label: "Full name", type: "text", autoComplete: "name", maxLength: 100 },
           { key: "email", label: "Email address", type: "email", autoComplete: "email", maxLength: 254 },
           { key: "phone", label: "Indian mobile number", type: "tel", autoComplete: "tel", maxLength: 32 }] as const).map((field) => <div key={field.key}>
@@ -126,7 +126,7 @@ export default function CheckoutForm({ books, initialSlug, enabled }: { books: P
         {totals && totals.tax > 0 && <div className="summary-line"><span>Tax</span><span>{rupees(totals.tax)}</span></div>}
         <PricingSummary pricing={pricing} coupon={coupon} setCoupon={setCoupon} fallback={totalLabel} />
         <p className="small muted mt-4">Prices and availability are checked again before payment. <Link href="/delivery-policy" className="underline">Delivery details</Link></p>
-        <Link className="text-link mt-4" href={initialSlug ? `/books/${encodeURIComponent(initialSlug)}` : "/cart"}>Review selection <ArrowRight size={16} aria-hidden="true" /></Link>
+        <Link className="text-link mt-4" href={initialSlug ? `/products/${encodeURIComponent(initialSlug)}` : "/cart"}>Review selection <ArrowRight size={16} aria-hidden="true" /></Link>
       </aside>
     </div>
   </>;

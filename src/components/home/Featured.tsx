@@ -12,7 +12,7 @@ export default function Featured({ books, rails, enabled }: { books: PublicBook[
       <Link className="link-line" href="/search">View all <span aria-hidden="true">→</span></Link></div>
     <ul className="book-grid home-grid">{books.map((b) => <li key={b.slug} className="reveal"><BookCard book={b} enabled={enabled} /></li>)}
       <li className="grid-cta reveal"><p className="eyebrow">New add-ons every month</p><p className="grid-cta-title">Find your next add-on</p>
-        <div className="grid-cta-links"><Link className="btn btn-primary" href="/search">Browse all books <span aria-hidden="true">→</span></Link>
+        <div className="grid-cta-links"><Link className="btn btn-primary" href="/search">Browse all products <span aria-hidden="true">→</span></Link>
           <Link className="btn btn-ghost" href="/wishlist">Your wishlist</Link></div></li></ul>
   </section>;
   const seen = new Set<string>();

@@ -21,7 +21,7 @@ export default function CategoryBar({ nav, previews }: { nav: { primary: NavCate
       return <div className="mega" key={c.slug}><Link className="mega-trigger" href={`/category/${c.slug}`}>{c.name} <ChevronDown size={14} aria-hidden="true" /></Link>
         <div className="mega-panel">
           <div className="mega-links"><Link className="mega-head" href={`/category/${c.slug}`}>All {c.name}</Link>{c.children.map((child) => <Link key={child.slug} href={`/category/${child.slug}`}>{child.name}</Link>)}</div>
-          {covers.length > 0 && <div className="mega-covers">{covers.map((b) => <Link key={b.slug} href={`/books/${encodeURIComponent(b.slug)}`}><Cover src={b.cover} title={b.title} sizes="72px" /></Link>)}</div>}
+          {covers.length > 0 && <div className="mega-covers">{covers.map((b) => <Link key={b.slug} href={`/products/${encodeURIComponent(b.slug)}`}><Cover src={b.cover} title={b.title} sizes="72px" /></Link>)}</div>}
         </div></div>;
     })}
     <Link href="/search?offer=1" className="deal-link">Offers &amp; deals</Link>

@@ -14,7 +14,7 @@ export function sideBooks(books: PublicBook[]) {
 }
 
 function Card({ book, kicker, tone }: { book: PublicBook; kicker: string; tone: "gold" | "green" }) {
-  return <Link href={`/books/${encodeURIComponent(book.slug)}`} className={`side-card side-${tone}`}>
+  return <Link href={`/products/${encodeURIComponent(book.slug)}`} className={`side-card side-${tone}`}>
     <span className="side-text">
       <span className="eyebrow">{kicker}</span>
       <span className="side-title">{book.title}</span>

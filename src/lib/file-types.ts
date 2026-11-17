@@ -4,7 +4,8 @@ export const FILE_TYPES = {
   pdf: { label: "PDF", extensions: ["pdf"], contentType: "application/pdf", watermark: true },
   epub: { label: "EPUB", extensions: ["epub"], contentType: "application/epub+zip", watermark: false },
   tdl: { label: "TDL source code", extensions: ["tdl"], contentType: "text/plain", watermark: false },
-  tcp: { label: "TCP file", extensions: ["tcp"], contentType: "text/plain", watermark: false },
+  // A TCP is a compiled Tally program: binary, so it is never treated as text.
+  tcp: { label: "TCP file", extensions: ["tcp"], contentType: "application/octet-stream", watermark: false },
   txt: { label: "Text file", extensions: ["txt"], contentType: "text/plain", watermark: false },
   zip: { label: "ZIP archive", extensions: ["zip"], contentType: "application/zip", watermark: false },
 } as const;

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { flag } from "@/lib/env";
 import { notFound } from "next/navigation";
-import { BadgeCheck, BookOpen, Download, FileText, Globe2, Hash, Infinity as Lifetime, Layers, Lock, Building2 } from "lucide-react";
+import { BadgeCheck, BookOpen, Download, FileText, Infinity as Lifetime, Layers, Lock } from "lucide-react";
 import { getBook, getBooks } from "@/lib/db";
 import { getPublicContent, safeUrl } from "@/lib/content";
 import { bookJsonLd, jsonLdHtml } from "@/lib/catalogue";
@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const book = await getBook((await params).slug);
   if (!book || !visibleBook(book)) return { title: "Add-on not found", robots: { index: false } };
   return { title: book.title, description: book.description || undefined,
-    alternates: { canonical: `${siteUrl()}/books/${encodeURIComponent(book.slug)}` },
+    alternates: { canonical: `${siteUrl()}/products/${encodeURIComponent(book.slug)}` },
     openGraph: { title: book.title, description: book.description || undefined, images: book.cover && !book.cover.startsWith("data:") ? [book.cover] : [] } };
 }
 
@@ -41,7 +41,7 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
   const live = await loadOffers();
   const view = { ...publicBook(book, now), offers: live.length ? offerBadges((await cartLines([book], now))[0], live, now) : [] };
   const enabled = flag("COMMERCE_ENABLED");
-  const url = `${siteUrl()}/books/${encodeURIComponent(book.slug)}`;
+  const url = `${siteUrl()}/products/${encodeURIComponent(book.slug)}`;
   const category = categories.find((c) => c.slug === book.category_slug);
   const author = book.author_slug ? content.authors.find((a) => a.id === book.author_slug) : undefined;
   let sample: string | null = null;
@@ -50,8 +50,7 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
   const byAuthor = book.author_slug ? others.filter((o) => o.author_slug === book.author_slug).slice(0, 12) : [];
   const similar = others.filter((o) => o.category_slug && o.category_slug === book.category_slug && !byAuthor.includes(o)).slice(0, 12);
   const details: [typeof BookOpen, string, string | number | null | undefined][] = [
-    [FileText, "Format", book.file_format], [Layers, "Pages", book.pages], [Globe2, "Language", view.language], [Hash, "ISBN", book.isbn],
-    [Building2, "Publisher", book.publisher], [BookOpen, "Edition", view.edition], [BadgeCheck, "Published", view.release_date ?? book.year],
+    [FileText, "File type", book.file_format], [Layers, "File size", book.file_size], [BadgeCheck, "Released", view.release_date],
   ];
   const facts = Object.entries(book.facts || {}).filter(([k]) => !k.startsWith("_"));
   const paragraphs = (book.long_description || "").split(/\n\s*\n/).filter(Boolean);
@@ -75,9 +74,8 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
           {book.subtitle && <p className="product-subtitle">{book.subtitle}</p>}
           {book.authorship && !isStoreOwned(book.authorship) && <p className="product-author">by {book.author_slug ? <Link href={`/authors/${encodeURIComponent(book.author_slug)}`}>{book.authorship}</Link> : book.authorship}</p>}
           <ul className="tag-row">{category && <li><Link className="chip" href={`/category/${category.slug}`}>{category.name}</Link></li>}
-            {view.language && <li><Link className="chip" href={`/search?language=${encodeURIComponent(view.language)}`}>{view.language}</Link></li>}
             {book.file_format && <li><span className="chip">{book.file_format}</span></li>}
-            {book.pages && <li><span className="chip">{book.pages} pages</span></li>}</ul>
+          </ul>
           <div className="buy-panel surface surface-lit">
             <Price book={view} size="page" />
             {view.offers.length > 0 && <ul className="offer-chips" aria-label="Offers">{view.offers.map((o) => <li key={o}><TicketPercent size={15} aria-hidden="true" />{o}</li>)}</ul>}

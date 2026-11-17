@@ -23,7 +23,7 @@ async function change(req: Request, action: "add" | "remove") {
   const reader = await getReader();
   if (!reader) return fail("Sign in to sync your wishlist.", 401);
   const slug = await slugFrom(req);
-  if (!slug) return fail("Choose a book.", 400);
+  if (!slug) return fail("Choose a product.", 400);
   if (action === "add") await addWishlist(reader.id, slug); else await removeWishlist(reader.id, slug);
   return NextResponse.json({ slugs: await listWishlist(reader.id) });
 }
