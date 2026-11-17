@@ -120,7 +120,16 @@ export default async function AdminBooks({
                 </div>
               </div>
               <details className="mt-4 border-t border-line pt-3">
-                <summary className="cursor-pointer text-sm font-medium">Offer and details</summary>
+                  <summary className="cursor-pointer text-sm text-danger">Delete product permanently</summary>
+                  <form action="/api/admin/book" method="post" className="mt-3 grid gap-3">
+                    <input type="hidden" name="action" value="delete" /><input type="hidden" name="slug" value={b.slug} />
+                    <p className="text-sm">Products with orders or wishlists cannot be permanently deleted; remove them from the store instead.</p>
+                    <label className="text-sm"><input type="checkbox" name="confirmed" required /> I confirm permanent deletion of this product.</label>
+                    <button className="btn btn-ghost justify-self-start" type="submit">Delete product</button>
+                  </form>
+              </details>
+              <details className="mt-4 border-t border-line pt-3">
+                <summary className="btn btn-ghost cursor-pointer list-none">Edit product details and offers</summary>
                 <div className="pt-4"><BookForm book={b} categories={categoryList} authors={authorList} /></div>
                 <details className="mt-4 border-t border-line pt-3">
                   <summary className="cursor-pointer text-sm text-ink-soft">Release from a reviewed submission</summary>

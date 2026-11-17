@@ -119,6 +119,10 @@ try {
     assert.equal((await adminBooks.POST(form('/api/admin/book', { ...bookMetadata, ...invalid }))).status, 400, JSON.stringify(invalid));
   }
   assert.equal((await adminBooks.POST(form('/api/admin/book', bookMetadata))).status, 303);
+  await db.query("insert into books(slug,title,price_inr,active) values('deletion-check','Deletion check',100,false)");
+  assert.equal((await adminBooks.POST(form('/api/admin/book', { action: 'delete', slug: 'deletion-check' }))).status, 400);
+  assert.equal((await adminBooks.POST(form('/api/admin/book', { action: 'delete', slug: 'deletion-check', confirmed: 'on' }))).status, 303);
+  assert.equal((await db.query("select slug from books where slug='deletion-check'")).rows.length, 0);
   const edited = (await db.query("select title,price_inr,facts,release_approved from books where slug='existing-firstparty'")).rows[0];
   assert.deepEqual(edited, { title: 'Edited first-party book', price_inr: 125, facts: { _internal: 'preserved', Author: 'Reviewed author' }, release_approved: false });
   assert.equal((await review.POST(form('/api/admin/platform/review', { action: 'review', id, version: String((await current()).version) }, 'https://evil.test'))).status, 403);
@@ -149,6 +153,7 @@ try {
   const thirdpartySubmissionBefore = (await db.query('select * from publishing_submissions where id=$1', [id])).rows[0];
   const thirdpartySnapshot = [{ slug: 'test-released-title', title: 'Purchased publication', price: thirdpartyBefore.price_inr, file_url: thirdpartyBefore.file_url, file_sha256: thirdpartyBefore.file_sha256, file_format: 'PDF' }];
   await db.query("insert into orders(id,email,items,subtotal,total,status) values('thirdparty-purchase','reader@example.test',$1::jsonb,$2,$2,'fulfilled')", [JSON.stringify(thirdpartySnapshot), thirdpartyBefore.price_inr]);
+  assert.equal((await adminBooks.POST(form('/api/admin/book', { action: 'delete', slug: 'test-released-title', confirmed: 'on' }))).status, 409);
   const metadataAuditCount = (await db.query("select count(*)::int count from events where type='admin.book.updated'")).rows[0].count;
   assert.equal((await adminBooks.POST(form('/api/admin/book', { ...bookMetadata, slug: 'test-released-title' }))).status, 409);
   assert.deepEqual((await db.query("select * from books where slug='test-released-title'")).rows[0], thirdpartyBefore);
@@ -192,7 +197,7 @@ try {
   const adminMarkup = renderToStaticMarkup(await adminBooksPage.default({ searchParams: Promise.resolve({}) }));
   assert.equal(adminMarkup.includes('name="file_url"'), false);
   assert.equal((adminMarkup.match(/name="action" value="release"/g) ?? []).length, 1);
-  assert.equal((adminMarkup.match(/<form\b/g) ?? []).length, 8); // includes store visibility control
+  assert.equal((adminMarkup.match(/<form\b/g) ?? []).length, 9); // includes store visibility and deletion controls
   assert.equal((adminMarkup.match(/name="action" value="price"/g) ?? []).length, 1, "inline price form");
   assert.ok(adminMarkup.includes('id="existing-firstparty-release-submission"'));
   assert.ok(adminMarkup.includes('name="reason"'));

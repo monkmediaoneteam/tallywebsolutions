@@ -49,12 +49,12 @@ export default function BookForm({ book, categories, authors }: { book: Book; ca
       {field("year", "Year", { inputMode: "numeric" })}
       {field("cover", "Cover URL", { maxLength: 2000 })}
       <label className="text-sm sm:col-span-2">Short description<textarea name="description" rows={3} className={input} defaultValue={book.description ?? ""} /></label>
-      <label className="text-sm sm:col-span-2">About the book<textarea name="long_description" rows={6} className={input} defaultValue={book.long_description ?? ""} /></label>
+      <label className="text-sm sm:col-span-2">About the product<textarea name="long_description" rows={6} className={input} defaultValue={book.long_description ?? ""} /></label>
       <label className="text-sm">Contents and highlights (one per line)<textarea name="highlights" rows={5} className={input} defaultValue={(book.highlights || []).join("\n")} /></label>
       <label className="text-sm">Details (Key: Value per line)<textarea name="facts" rows={5} className={input} defaultValue={Object.entries(book.facts || {}).filter(([k]) => !k.startsWith("_")).map(([k, v]) => `${k}: ${v}`).join("\n")} /></label>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="active" defaultChecked={book.active} /> Visible in the store</label>
-      <p className="text-sm text-ink-soft sm:col-span-2">Saving these details requires a new release before the book can be sold again (this protects buyers from silent file or price changes).</p>
-      <button className="btn btn-primary justify-self-start" type="submit">Save details</button>
+      <p className="text-sm text-ink-soft sm:col-span-2">Changing the file format requires the product to be put on sale again.</p>
+      <button className="btn btn-primary justify-self-start" type="submit">Update product</button>
     </form>
   </section>;
 }

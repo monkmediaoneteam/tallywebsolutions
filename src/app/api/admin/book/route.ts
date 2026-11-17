@@ -28,12 +28,25 @@ export async function POST(req: Request) {
       : action === 'create' ? ['action', 'slug', 'title']
       : action === 'pricing' ? ['action', 'slug', 'sale_price', 'sale_starts_at', 'sale_ends_at']
       : action === 'put-on-sale' ? ['action', 'slug']
+      : action === 'delete' ? ['action', 'slug', 'confirmed']
       : action === 'hide' || action === 'show' ? ['action', 'slug']
       : action === 'price' ? ['action', 'slug', 'price']
       : ['action', 'slug', 'title', 'subtitle', 'price_inr', 'publisher', 'isbn', 'pages', 'year', 'cover', 'description', 'long_description', 'authorship', 'facts', 'highlights', 'active',
          'category_slug', 'release_date', 'language', 'edition', 'file_format', 'author_slug'];
-    if (!['save', 'release', 'archive', 'restore', 'create', 'pricing', 'put-on-sale', 'price', 'hide', 'show'].includes(String(action)) || [...form.keys()].some(key => !allowed.includes(key) || form.getAll(key).length !== 1)) throw new PublishingError('Invalid book fields.');
-    if (action === 'hide' || action === 'show') {
+    if (!['save', 'release', 'archive', 'restore', 'create', 'pricing', 'put-on-sale', 'price', 'hide', 'show', 'delete'].includes(String(action)) || [...form.keys()].some(key => !allowed.includes(key) || form.getAll(key).length !== 1)) throw new PublishingError('Invalid product fields.');
+    if (action === 'delete') {
+      if (form.get('confirmed') !== 'on') throw new PublishingError('Confirm permanent deletion.');
+      const rows = await sql`with removed as (
+        delete from books b where b.slug=${slug} and not coalesce(b.third_party,false)
+          and not exists (select 1 from orders o where o.items @> jsonb_build_array(jsonb_build_object('slug',b.slug)))
+          and not exists (select 1 from downloads d where d.book_slug=b.slug)
+          and not exists (select 1 from wishlist w where w.book_slug=b.slug)
+        returning slug
+      ), audit as (insert into events(order_id,type,payload)
+        select null,'admin.book.deleted',jsonb_build_object('slug',slug) from removed)
+      select slug from removed`;
+      if (!rows.length) throw new PublishingError('Cannot delete this product: it may have orders, saved wishlists, or be a reviewed submission. Remove it from the store instead.', 409);
+    } else if (action === 'hide' || action === 'show') {
       const rows = await sql`with changed as (
         update books set active=${action === 'show'} where slug=${slug} and not third_party returning slug
       ), audit as (insert into events(order_id,type,payload)
