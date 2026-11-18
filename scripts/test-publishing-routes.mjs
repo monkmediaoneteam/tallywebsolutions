@@ -258,6 +258,26 @@ try {
   assert.equal((await adminBooks.POST(form('/api/admin/products', { ...bookMetadata, file_format: 'EPUB' }))).status, 303);
   assert.equal((await db.query("select release_approved from books where slug='existing-firstparty'")).rows[0].release_approved, false, 'changing the file format needs a new release');
   assert.equal((await adminBooks.POST(form('/api/admin/products', releaseForm))).status, 303);
+  // Admin product files: an attached file or cover is only replaced on purpose.
+  const productFiles = await load('../src/app/api/admin/product-files/route.ts');
+  await db.query("insert into books(slug,title,price_inr) values('no-file-yet','No file yet',100)");
+  const attachedUrl = (await db.query("select file_url from books where slug='existing-firstparty'")).rows[0].file_url;
+  assert.ok(attachedUrl, 'fixture product has a file');
+  const stray = await productFiles.POST(json('/api/admin/product-files', { action: 'ticket', slug: 'existing-firstparty', kind: 'pdf' }));
+  assert.equal(stray.status, 409);
+  assert.match((await stray.json()).error, /already has a file\. Use Replace file/);
+  assert.equal((await productFiles.POST(json('/api/admin/product-files', { action: 'ticket', slug: 'existing-firstparty', kind: 'pdf', replace: true }))).status, 200);
+  assert.equal((await productFiles.POST(json('/api/admin/product-files', { action: 'ticket', slug: 'no-file-yet', kind: 'pdf' }))).status, 200, 'first upload needs no confirmation');
+  assert.equal((await productFiles.POST(json('/api/admin/product-files', { action: 'ticket', slug: 'no-file-yet', kind: 'cover' }))).status, 200);
+  // Put on sale is refused without a file, and the edit page says why.
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { action: 'price', slug: 'no-file-yet', price: '5' }))).status, 303);
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { action: 'put-on-sale', slug: 'no-file-yet' }))).status, 409);
+  assert.equal((await db.query("select release_approved from books where slug='no-file-yet'")).rows[0].release_approved, false);
+  const noFileMarkup = await edit('no-file-yet');
+  assert.match(noFileMarkup, /Before it can go on sale/);
+  assert.match(noFileMarkup, /Upload the product file\./);
+  assert.match(noFileMarkup, /<button[^>]*disabled=""[^>]*>.*Put on sale/s);
+  await db.query("delete from books where slug='no-file-yet'");
   admin = false;
   assert.equal((await assets.GET(new Request(origin), { params: Promise.resolve({ id: registered[0].id }) })).status, 404);
   assert.equal((await assets.GET(new Request(origin), { params: Promise.resolve({ id: registered[1].id }) })).status, 200);

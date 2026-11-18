@@ -2,7 +2,7 @@ import { sql, type Book } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 import { isAdmin } from "@/lib/admin-auth";
 import AdminShell from "@/components/AdminShell";
-import { ArrowLeft, Archive, BookCheck, Check, ExternalLink, Eye, EyeOff, Rocket, TicketPercent, Trash2, X } from "lucide-react";
+import { ArrowLeft, Archive, PackageCheck, Check, ExternalLink, Eye, EyeOff, Rocket, TicketPercent, Trash2, X } from "lucide-react";
 import { PRODUCT_STATUSES, productStatus, releaseChecklist } from "@/lib/admin-catalogue";
 import { fileCheck } from "@/lib/admin-sale";
 import { currentPrice, rupees } from "@/lib/money";
@@ -79,7 +79,16 @@ export default async function EditProduct({
   // "File scan clean" is set by Put on sale itself for products uploaded here, so it is not a separate step.
   const checklist = releaseChecklist(b).filter((i) => i.label !== "File scan clean");
   const file = await fileCheck(process.cwd(), b.file_url, b.file_sha256 ?? null);
-  const canRelease = !b.release_approved && file.ok && b.price_inr > 0;
+  // Everything that still stands between this product and "Put on sale", in the order the admin fixes them.
+  const uploadedType = b.facts?._file_type ?? null;
+  const blockers = [
+    ...(!b.file_url ? ["Upload the product file."] : !file.ok && file.reason ? [file.reason] : []),
+    ...(b.file_url && uploadedType && b.file_format && uploadedType !== b.file_format ? [`The attached file is ${uploadedType}, but the product is sold as ${b.file_format}. Upload a ${b.file_format} file or change the file type.`] : []),
+    ...(b.price_inr > 0 ? [] : ["Set a regular price in Product details."]),
+  ];
+  const canRelease = !b.release_approved && blockers.length === 0;
+  const attachedFile = b.file_url ? { name: b.facts?._file_name || `${b.file_format ?? "PDF"} file`, detail: [b.file_format ?? "PDF", b.file_size].filter(Boolean).join(" · ") } : null;
+  const attachedCover = b.cover ? { name: "Cover image", detail: "Shown on the store", image: b.cover } : null;
   return (
     <AdminShell active="books" title={b.title} subtitle={`${(categories as { slug: string; name: string }[]).find((c) => c.slug === b.category_slug)?.name ?? "No category"} · ${orders ? `${orders} orders` : "No sales yet"}`} actions={header}>
       {notices}
@@ -97,7 +106,7 @@ export default async function EditProduct({
                 <input type="checkbox" name="confirmed" required className="mt-1 h-4 w-4 shrink-0 accent-[color:var(--color-brand)]" />
                 I confirm release using the reviewed submission.
               </label>
-              <button className="btn btn-ghost justify-self-start" type="submit"><BookCheck size={16} aria-hidden="true" /> Release product</button>
+              <button className="btn btn-ghost justify-self-start" type="submit"><PackageCheck size={16} aria-hidden="true" /> Release product</button>
             </form>
           </details>
           <section className="mt-6 rounded-xl border border-danger/30 bg-white p-5" aria-labelledby="danger-heading">
@@ -123,16 +132,25 @@ export default async function EditProduct({
             </div>
             <ul className="mt-4 grid gap-1.5" aria-label="Release checklist">{checklist.map((i) => <li key={i.label} className={`flex items-center gap-2 text-sm ${i.ok ? "text-ink" : "text-ink-soft"}`}>
               {i.ok ? <Check size={14} className="text-brand" aria-hidden="true" /> : <X size={14} aria-hidden="true" />}{i.label}<span className="sr-only">{i.ok ? ": done" : ": missing"}</span></li>)}</ul>
-            {!b.release_approved && file.reason && <p className="mt-3 text-sm text-ink-soft">{file.reason}</p>}
+            {!b.release_approved && blockers.length > 0 && <div className="mt-4 rounded-2 border border-danger/30 bg-danger/5 p-3 text-sm" role="note">
+              <p className="font-medium text-danger">Before it can go on sale</p>
+              <ul className="mt-1 grid list-disc gap-1 pl-5 text-ink">{blockers.map((x) => <li key={x}>{x}</li>)}</ul>
+            </div>}
             {!b.release_approved && <form action="/api/admin/products" method="post" className="mt-4">
               <input type="hidden" name="action" value="put-on-sale" /><input type="hidden" name="slug" value={b.slug} />
-              <button className="btn btn-primary w-full" type="submit" disabled={!canRelease} title={canRelease ? undefined : file.reason ?? "Set a price first."}>
+              <button className="btn btn-primary w-full" type="submit" disabled={!canRelease}>
                 <Rocket size={16} aria-hidden="true" /> Put on sale</button>
             </form>}
             <form action="/api/admin/products" method="post" className="mt-2">
               <input type="hidden" name="action" value={b.active ? "hide" : "show"} /><input type="hidden" name="slug" value={b.slug} />
               <button className="btn btn-ghost w-full" type="submit">{b.active ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}{b.active ? "Remove from store" : "Restore to store"}</button>
             </form>
+          </section>
+
+          <section className="grid gap-3 rounded-xl border border-line bg-white p-5" aria-labelledby="files-heading">
+            <h2 id="files-heading" className="font-semibold">Files</h2>
+            <ProductUpload slug={b.slug} kind="pdf" attached={attachedFile} onSale={!!b.release_approved} />
+            <div className="border-t border-line pt-3"><ProductUpload slug={b.slug} kind="cover" attached={attachedCover} /></div>
           </section>
 
           <section className="rounded-xl border border-line bg-white p-5" aria-labelledby="offers-heading">
@@ -151,11 +169,6 @@ export default async function EditProduct({
             </form>}
           </section>
 
-          <section className="grid gap-3 rounded-xl border border-line bg-white p-5" aria-labelledby="files-heading">
-            <h2 id="files-heading" className="font-semibold">Files</h2>
-            <ProductUpload slug={b.slug} kind="pdf" />
-            <ProductUpload slug={b.slug} kind="cover" />
-          </section>
         </aside>
       </div>
     </AdminShell>
