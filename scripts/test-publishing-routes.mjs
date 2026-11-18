@@ -55,6 +55,7 @@ try {
   dependencies['@/lib/submissions'] = await load('../src/lib/submissions.ts');
   dependencies['@/lib/content'] = await load('../src/lib/content.ts');
   dependencies['@/lib/product-status'] = await load('../src/lib/product-status.ts');
+  dependencies['@/lib/slug'] = await load('../src/lib/slug.ts');
   dependencies['@/lib/admin-catalogue'] = await load('../src/lib/admin-catalogue.ts');
   dependencies['@/lib/file-types'] = await load('../src/lib/file-types.ts');
   dependencies['@/lib/admin-sale'] = await load('../src/lib/admin-sale.ts');
@@ -64,6 +65,7 @@ try {
   dependencies['../ProductUpload'] = { default: () => null };
   dependencies['../StatusBadge'] = dependencies['./StatusBadge'] = await load('../src/app/admin/products/StatusBadge.tsx');
   dependencies['./ProductTable'] = await load('../src/app/admin/products/ProductTable.tsx');
+  dependencies['./CreateProduct'] = { default: () => null };
   const authorRoute = await load('../src/app/api/submissions/route.ts');
   const uploads = await load('../src/app/api/submissions/uploads/route.ts');
   const scanner = await load('../src/app/api/submissions/scan/route.ts');
@@ -258,6 +260,18 @@ try {
   assert.equal((await adminBooks.POST(form('/api/admin/products', { ...bookMetadata, file_format: 'EPUB' }))).status, 303);
   assert.equal((await db.query("select release_approved from books where slug='existing-firstparty'")).rows[0].release_approved, false, 'changing the file format needs a new release');
   assert.equal((await adminBooks.POST(form('/api/admin/products', releaseForm))).status, 303);
+  // New products get their web address from the name; a repeated name gets -2, -3.
+  const { slugify } = dependencies['@/lib/slug'];
+  assert.equal(slugify('HSN & SAC Code with GST Rate in Invoice'), 'hsn-and-sac-code-with-gst-rate-in-invoice');
+  assert.equal(slugify('Stop Cash Transaction above ₹10,000'), 'stop-cash-transaction-above-rs-10-000');
+  assert.equal(slugify('  Café — Résumé!! '), 'cafe-resume');
+  const created = await adminBooks.POST(form('/api/admin/products', { action: 'create', title: 'Auto Slug Check', slug: '' }));
+  assert.equal(created.status, 303);
+  assert.match(created.headers.get('location'), /\/admin\/products\/auto-slug-check\?saved=1$/);
+  const again = await adminBooks.POST(form('/api/admin/products', { action: 'create', title: 'Auto Slug Check' }));
+  assert.match(again.headers.get('location'), /\/admin\/products\/auto-slug-check-2\?saved=1$/, 'same name gets a numbered address');
+  assert.equal((await adminBooks.POST(form('/api/admin/products', { action: 'create', title: '!!!' }))).status, 400, 'a name with no letters needs a typed address');
+  await db.query("delete from books where slug in ('auto-slug-check','auto-slug-check-2')");
   // Admin product files: an attached file or cover is only replaced on purpose.
   const productFiles = await load('../src/app/api/admin/product-files/route.ts');
   await db.query("insert into books(slug,title,price_inr) values('no-file-yet','No file yet',100)");

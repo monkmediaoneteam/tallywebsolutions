@@ -16,6 +16,8 @@ export const metadata = { title: "Edit product", robots: { index: false, follow:
 
 type AdminProduct = Book & { submission_id: string | null };
 
+const b0 = (rows: unknown) => (rows as { submission_id: string | null }[])[0];
+
 export default async function EditProduct({
   params,
   searchParams,
@@ -27,13 +29,16 @@ export default async function EditProduct({
   if (!(await isAdmin())) redirect("/admin/login");
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) notFound();
 
-  const [rows, categories, sold, offerRows] = await Promise.all([
+  const [rows, categories, sold, offerRows, reviewed] = await Promise.all([
     sql`select * from books where slug=${slug}`,
     sql`select slug,name from categories where status<>'archived' order by sort,name`,
     sql`select count(*)::int as orders from downloads where book_slug=${slug}`,
     // Offers are optional (set up from the Offers screen); without the table there are none to show.
     (async () => { try { return await sql`select * from offers where status<>'archived' order by created_at desc`; } catch { return []; } })(),
+    sql`select count(*)::int as n from publishing_submissions where status='approved'`,
   ]);
+  // Releasing a reviewed developer submission replaces this product's file; offered only when one is waiting.
+  const canReleaseSubmission = ((reviewed as { n: number }[])[0]?.n ?? 0) > 0 || !!b0(rows)?.submission_id;
   const b = (rows as AdminProduct[])[0];
   if (!b) notFound();
   const orders = (sold as { orders: number }[])[0]?.orders ?? 0;
@@ -95,8 +100,9 @@ export default async function EditProduct({
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="order-2 min-w-0 xl:order-1">
           <ProductForm book={b} categories={categories as { slug: string; name: string }[]} />
-          <details className="mt-6 rounded-xl border border-line bg-white p-5">
+          {canReleaseSubmission && <details className="mt-6 rounded-xl border border-line bg-white p-5">
             <summary className="cursor-pointer font-semibold">Release from a reviewed submission</summary>
+            <p className="mt-3 text-sm text-ink-soft">This replaces the product&apos;s file and cover with the reviewed developer submission (a PDF) and puts it on sale.</p>
             <form action="/api/admin/products" method="post" className="mt-4 grid gap-3">
               <input type="hidden" name="action" value="release" />
               <input type="hidden" name="slug" value={b.slug} />
@@ -108,7 +114,7 @@ export default async function EditProduct({
               </label>
               <button className="btn btn-ghost justify-self-start" type="submit"><PackageCheck size={16} aria-hidden="true" /> Release product</button>
             </form>
-          </details>
+          </details>}
           <section className="mt-6 rounded-xl border border-danger/30 bg-white p-5" aria-labelledby="danger-heading">
             <h2 id="danger-heading" className="font-semibold text-danger">Delete product</h2>
             <form action="/api/admin/products" method="post" className="mt-3 grid gap-3">
