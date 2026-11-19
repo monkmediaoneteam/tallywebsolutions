@@ -4,28 +4,14 @@ import { isAdmin } from "@/lib/admin-auth";
 import { getAdminContent } from "@/lib/content";
 import AdminShell from "@/components/AdminShell";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
-import ImageField from "@/components/ImageField";
+import BannerFields from "./BannerFields";
+import { PLACEMENTS, KEPT_PAYLOAD, toIndiaInput, placementOf, type BannerData } from "./banner-data";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Banners", robots: { index: false, follow: false } };
 
-type Banner = { id: string; title: string; body: string | null; image_url: string | null; mobile_image_url: string | null; link_url: string | null; link_label: string | null;
-  payload: Record<string, unknown>; sort: number; status: string; publish_at: string | null; ends_at: string | null; updated_at: string };
+type Banner = BannerData;
 
-// Where a banner shows on the homepage. Side cards sit beside the hero; without one, the store shows a product there.
-const PLACEMENTS = { hero: "Hero (rotating, top of the homepage)", "side-1": "Side card 1 (top right)", "side-2": "Side card 2 (bottom right)" } as const;
-const placementOf = (b?: Banner) => (typeof b?.payload?.placement === "string" && b.payload.placement in PLACEMENTS ? b.payload.placement : "hero") as keyof typeof PLACEMENTS;
-
-// Payload settings this form does not edit (set under Homepage sections); sent back unchanged so saving keeps them.
-const KEPT_PAYLOAD = ["attribution", "collection_slug", "author_id", "video_url", "theme", "size", "category_slug"];
-
-// Stored instants are shown and entered in India time.
-function toIndiaInput(value: string | null) {
-  if (!value) return "";
-  const t = Date.parse(value.includes("T") ? value : value.replace(" ", "T"));
-  if (!Number.isFinite(t)) return "";
-  return new Date(t + 330 * 60000).toISOString().slice(0, 16);
-}
 const isLive = (b: Banner, now = Date.now()) => b.status === "published" && (!b.publish_at || Date.parse(b.publish_at.replace(" ", "T")) <= now) && (!b.ends_at || Date.parse(b.ends_at.replace(" ", "T")) > now);
 
 export default async function BannersPage({ searchParams }: { searchParams: Promise<{ saved?: string; error?: string }> }) {
@@ -74,15 +60,7 @@ function BannerForm({ banner }: { banner?: Banner }) {
     <input type="hidden" name="sort" value={String(banner?.sort ?? 1000)} /><input type="hidden" name="return_to" value="/admin/banners" />
     {KEPT_PAYLOAD.filter((k) => typeof banner?.payload?.[k] === "string" && banner.payload[k]).map((k) => <input key={k} type="hidden" name={k} value={String(banner!.payload[k])} />)}
     {Array.isArray(banner?.payload?.category_slugs) && (banner.payload.category_slugs as unknown[]).map((c) => <input key={`c-${String(c)}`} type="hidden" name="category_slugs" value={String(c)} />)}
-    <label className="text-sm">Headline<input name="title" required maxLength={200} className={input} defaultValue={banner?.title ?? ""} placeholder="GST season offers" /></label>
-    <label className="text-sm">Small label above<input name="subtitle" maxLength={200} className={input} defaultValue={typeof banner?.payload?.subtitle === "string" ? banner.payload.subtitle : ""} placeholder="Limited time" /></label>
-    <label className="text-sm sm:col-span-2">One line of text<input name="body" maxLength={160} className={input} defaultValue={banner?.body ?? ""} placeholder="Up to 20% off selected add-ons" /></label>
-    <label className="text-sm sm:col-span-2">Where it shows<select name="placement" className={input} defaultValue={placementOf(banner)}>
-      {Object.entries(PLACEMENTS).map(([value, text]) => <option key={value} value={value}>{text}</option>)}</select></label>
-    <ImageField name="image_url" label="Image" value={banner?.image_url ?? ""} hint="Hero: wide, about 1600 × 700. Side cards: about 800 × 600. JPEG, PNG or WebP, up to 5 MB." />
-    <ImageField name="mobile_image_url" label="Phone image (optional)" value={banner?.mobile_image_url ?? ""} ratio="4 / 5" hint="Shown on phones instead, about 800 × 1000. Leave empty to use the main image." />
-    <label className="text-sm">Button link<input name="link_url" maxLength={2000} className={input} defaultValue={banner?.link_url ?? ""} placeholder="/search?offer=1" /></label>
-    <label className="text-sm">Button text<input name="link_label" maxLength={100} className={input} defaultValue={banner?.link_label ?? ""} placeholder="Shop offers" /></label>
+    <BannerFields banner={banner} />
     <label className="text-sm">Starts (India time, optional)<input name="publish_at" type="datetime-local" className={input} defaultValue={toIndiaInput(banner?.publish_at ?? null)} /></label>
     <label className="text-sm">Ends (India time, optional)<input name="ends_at" type="datetime-local" className={input} defaultValue={toIndiaInput(banner?.ends_at ?? null)} /></label>
     <label className="text-sm">Status<select name="status" className={input} defaultValue={banner?.status ?? "published"}><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select></label>
