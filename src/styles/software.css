@@ -92,3 +92,7 @@ a:hover > .ptile, a:hover .ptile { transform: translateY(-2px); }
 /* Cards and hero: no second frame around product images; the hero is plain until the admin adds artwork. */
 .book-card .card-plate { padding: 0; background: none; box-shadow: none; }
 .hero-campaign:not(:has(.hero-slide.has-art:not([hidden])))::before { background: linear-gradient(180deg, #ffffff 0%, var(--bg-2) 100%) !important; }
+
+/* Uploaded product covers fill their card frame edge to edge: no inner border, tint or padding around the image. */
+.book-card .card-plate { overflow: hidden; border-radius: 14px; padding: 0; }
+.ptile > img { border: 0; background: none; border-radius: 14px; }
