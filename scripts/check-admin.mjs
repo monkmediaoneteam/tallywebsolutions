@@ -18,10 +18,12 @@ try {
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(`${base}/admin`);
   for (const [link, heading] of [['Orders', 'Orders'], ['Products', 'Products'], ['Categories', 'Categories'], ['Developers', 'Developers'],
-    ['Collections', 'Collections'], ['Banners', 'Banners'], ['Homepage sections', 'Homepage sections'], ['Submissions', 'Submissions'], ['Delivery recovery', 'Delivery recovery']]) {
+    ['Collections', 'Collections'], ['Banners', 'Banners'], ['Homepage sections', 'Homepage sections'], ['Submissions', 'Submissions'], ['Delivery recovery', 'Delivery recovery'], ['Storage', 'Storage']]) {
     await page.getByRole('navigation').getByRole('link', { name: link, exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
   }
+  // Storage explains how to connect file storage when none is set up (the preview has none).
+  await expect(page.getByText('File storage is not connected')).toBeVisible();
   // Create a draft product: it opens straight in its editor.
   await page.goto(`${base}/admin/products`);
   await page.getByText('Add product').click();

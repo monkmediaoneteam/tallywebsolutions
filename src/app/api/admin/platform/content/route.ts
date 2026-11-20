@@ -9,6 +9,8 @@ import { contentSections, saveContent, deleteContent, moveModule, ContentError, 
 const BACK_PATH = /^\/admin\/banners(\/sections)?(\/[A-Za-z0-9_-]{1,120})?$/;
 const backPath = (value: FormDataEntryValue | null) => (typeof value === "string" && BACK_PATH.test(value) ? value : null);
 import { readLimitedForm, PublishingError } from "@/lib/submissions";
+import { pathsBefore, releaseQuietly } from "@/lib/storage-admin";
+import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 export async function POST(req: Request) {
@@ -25,6 +27,11 @@ export async function POST(req: Request) {
     const id = String(form.get("id") ?? "");
     const expected = String(form.get("updated_at") ?? "");
     const action = form.get("action");
+    // Uploads this record points at now; if the change drops them, they are removed afterwards (unless used elsewhere).
+    const before = id && (action === "delete" || action === "save") ? await pathsBefore(
+      section === "collections" ? sql`select to_jsonb(t)::text as doc from content_collections t where slug=${id}`
+      : section === "authors" ? sql`select to_jsonb(t)::text as doc from author_profiles t where id=${id}`
+      : sql`select to_jsonb(t)::text as doc from content_modules t where id=${id}`) : [];
     if (action === "delete") await deleteContent(section, id, expected);
     else if (action === "move") await moveModule(id, String(form.get("direction") ?? ""));
     else if (action === "save") {
@@ -41,6 +48,7 @@ export async function POST(req: Request) {
       if (form.getAll("category_slugs").length) (input.payload as Record<string, unknown>).category_slugs = form.getAll("category_slugs").map(String);
       await saveContent(section, id, expected || null, input);
     } else return NextResponse.json({ error: "Unknown content action." }, { status: 400 });
+    if (before.length) await releaseQuietly(before);
     revalidatePath("/");
     revalidatePath("/admin/platform");
     return NextResponse.redirect(new URL(done ? `${done}?saved=1` : `/admin/platform/${section}?saved=1`, req.url), 303);
