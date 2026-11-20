@@ -24,6 +24,8 @@ import { cartLines, loadOffers } from "@/lib/offer-data";
 import { offerBadges } from "@/lib/offers";
 import { TicketPercent } from "lucide-react";
 import { isStoreOwned } from "@/lib/store";
+import { bannerSections, sectionsAt } from "@/lib/home";
+import { SectionList } from "@/components/home/BannerSectionView";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -44,6 +46,7 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
   const url = `${siteUrl()}/products/${encodeURIComponent(book.slug)}`;
   const category = categories.find((c) => c.slug === book.category_slug);
   const author = book.author_slug ? content.authors.find((a) => a.id === book.author_slug) : undefined;
+  const banners = bannerSections(content.modules);
   let sample: string | null = null;
   try { sample = safeUrl(book.sample_url); } catch { /* A malformed sample is not offered. */ }
   const others = records.filter((r) => r.slug !== book.slug && visibleBook(r)).map((r) => publicBook(r, now));
@@ -88,7 +91,9 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
           <dl className="detail-strip">{details.filter(([, , v]) => v).map(([Icon, label, value]) => <div key={label}><dt><Icon size={14} aria-hidden="true" />{label}</dt><dd>{value}</dd></div>)}</dl>
         </div>
       </article>
+      <SectionList list={sectionsAt(banners, "product-below-details")} wrap="section" />
       <BookTabs tabs={tabs} />
+      <SectionList list={sectionsAt(banners, "product-below-tabs")} wrap="section" />
       {byAuthor.length > 0 && !isStoreOwned(book.authorship) && <div className="section"><Carousel title={`More by ${book.authorship}`}>{byAuthor.map((b) => <BookCard key={b.slug} book={b} enabled={enabled} />)}</Carousel></div>}
       {similar.length > 0 && <div className="section"><Carousel title="Similar add-ons" href={category ? `/category/${category.slug}` : "/search"}>{similar.map((b) => <BookCard key={b.slug} book={b} enabled={enabled} />)}</Carousel></div>}
       <RecentlyViewed current={book.slug} />

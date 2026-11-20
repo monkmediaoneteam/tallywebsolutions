@@ -6,9 +6,9 @@ import { facets, filterBooks, listingHref, paginate, type ListingParams } from "
 
 const SORT_LABELS: [ListingParams["sort"], string][] = [["", "Relevance"], ["popular", "Popularity"], ["new", "Newest"], ["price-asc", "Price: low to high"], ["price-desc", "Price: high to low"], ["title", "Title"]];
 
-export default function Listing({ base, title, intro, banner, books, params, categories, children, family, popularity, enabled }: {
+export default function Listing({ base, title, intro, banner, promo, books, params, categories, children, family, popularity, enabled }: {
   base: string; title: string; intro?: string | null; banner?: { colour: string | null; image: string | null } | null; books: PublicBook[]; params: ListingParams;
-  categories: { slug: string; name: string }[]; children?: React.ReactNode; family?: string[]; popularity?: string[]; enabled: boolean;
+  categories: { slug: string; name: string }[]; children?: React.ReactNode; promo?: React.ReactNode; family?: string[]; popularity?: string[]; enabled: boolean;
 }) {
   const results = filterBooks(books, params, { categoryFamily: family, popularity });
   const page = paginate(results, params.page);
@@ -21,6 +21,7 @@ export default function Listing({ base, title, intro, banner, books, params, cat
         <h1 className="enter">{title}</h1>{intro && <p>{intro}</p>}{children}</div>
       {banner?.image && <img src={banner.image} alt="" className="listing-art" />}
     </div>
+    {promo}
     <div className="wrap listing-layout">
       <aside className="filters" aria-label="Filters">
         {/* Phones and tablets: filters fold behind one button (pure CSS); desktop always shows them. */}

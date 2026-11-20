@@ -16,7 +16,7 @@ export type Collection = {
 export type AuthorProfile = { id: string; name: string; bio: string | null; photo_url: string | null };
 export const contentSections = ["modules", "collections", "media", "testimonials", "authors"] as const;
 export type ContentSection = typeof contentSections[number];
-export const moduleTypes = ["hero", "banner", "text", "collection", "testimonial", "author", "media", "announcement", "promo", "genre-switcher"] as const;
+export const moduleTypes = ["hero", "banner", "banner-section", "text", "collection", "testimonial", "author", "media", "announcement", "promo", "genre-switcher"] as const;
 const themes = ["coral", "sky", "yellow", "green", "ink", "lilac"];
 export class ContentError extends Error {}
 
@@ -37,6 +37,12 @@ export function textField(value: unknown, max: number, required = false): string
   if (typeof value !== "string" || value.trim().length > max || (required && !value.trim())) throw new ContentError("Invalid or missing text field.");
   return value.trim();
 }
+// Banner section options; must match POSITIONS and LAYOUTS in banner-sections.ts (a test checks). Kept here so this module has no imports.
+export const BANNER_POSITIONS = ["home-top-main", "home-top-side", "home-after-categories", "home-after-products", "home-before-faq", "product-below-details", "product-below-tabs", "listing-above-results"];
+export const BANNER_LAYOUTS = ["carousel", "single", "grid", "stack"];
+// Built-in section keys (DEFAULT_SECTIONS in banner-sections.ts) and the old slot names that map onto them.
+export const BUILT_IN_SECTIONS = ["hero", "side", "band", "product", "listing", "side-1", "side-2"];
+const SECTION_NUMBERS: Record<string, [number, number]> = { max: [1, 12], columns: [1, 4], width: [200, 4000], height: [100, 4000], mobile_width: [200, 4000], mobile_height: [100, 4000], autoplay: [0, 60] };
 export function validateContent(section: ContentSection, input: Record<string, unknown>) {
   const title = textField(input.title ?? input.name, 200, true);
   const status = input.status ?? "draft";
@@ -55,9 +61,26 @@ export function validateContent(section: ContentSection, input: Record<string, u
   const bookSlugs = input.book_slugs ?? [];
   if (!Array.isArray(bookSlugs) || bookSlugs.length > 100 || bookSlugs.some(s => typeof s !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s)) || new Set(bookSlugs).size !== bookSlugs.length) throw new ContentError("Invalid product selection.");
   const payload = input.payload ?? {};
-  const allowedKeys = ["subtitle", "quote", "attribution", "collection_slug", "author_id", "book_slugs", "video_url", "theme", "size", "category_slug", "category_slugs", "placement"];
+  const allowedKeys = ["subtitle", "quote", "attribution", "collection_slug", "author_id", "book_slugs", "video_url", "theme", "size", "category_slug", "category_slugs", "placement", "key", "position", "layout", "max", "columns", "width", "height", "mobile_width", "mobile_height", "autoplay", "empty", "fit", "enabled"];
   if (!payload || typeof payload !== "object" || Array.isArray(payload) || JSON.stringify(payload).length > 10000 || Object.keys(payload).some(k => !allowedKeys.includes(k))) throw new ContentError("Invalid module data.");
-  if ("placement" in payload && !["hero", "side-1", "side-2"].includes(String((payload as Record<string, unknown>).placement))) throw new ContentError("Choose where the banner shows.");
+  const p = payload as Record<string, unknown>;
+  // A banner names the section it belongs to; a section is a short key plus its layout settings.
+  if ("placement" in p && (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(p.placement)) || String(p.placement).length > 40)) throw new ContentError("Choose where the banner shows.");
+  if (section === "modules" && type === "banner-section") {
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(p.key ?? "")) || String(p.key).length > 40) throw new ContentError("Give the section a short key: lowercase letters, numbers and dashes.");
+    if (!BANNER_POSITIONS.includes(String(p.position))) throw new ContentError("Choose where the section shows.");
+    if (!BANNER_LAYOUTS.includes(String(p.layout))) throw new ContentError("Choose a layout.");
+    for (const [field, [lo, hi]] of Object.entries(SECTION_NUMBERS)) {
+      const n = Number(p[field]);
+      if (!Number.isInteger(n) || n < lo || n > hi) throw new ContentError(`${field.replace("_", " ")} must be a whole number from ${lo} to ${hi}.`);
+    }
+    if (!["placeholder", "hide"].includes(String(p.empty))) throw new ContentError("Choose what shows when the section is empty.");
+    if ("fit" in p && !["cover", "contain"].includes(String(p.fit))) throw new ContentError("Choose how the image fits: fill the frame or show it whole.");
+    if (p.key === "new") throw new ContentError("That key is reserved. Choose another.");
+    if (!["on", "off"].includes(String(p.enabled))) throw new ContentError("Choose whether the section is on.");
+  }
+  // A banner is only its image (any words are part of the artwork), so it cannot be saved without one.
+  if (section === "modules" && type === "banner" && !safeUrl(input.image_url)) throw new ContentError("Add an image for this banner (upload one, pick a template or paste an address).");
   for (const [key, value] of Object.entries(payload)) {
     if (key === "video_url") safeUrl(value);
     else if (key === "theme") { if (!themes.includes(String(value))) throw new ContentError("Invalid theme."); }
@@ -116,6 +139,15 @@ export async function saveContent(section: ContentSection, id: string, expected:
     const target = await sql`select id from author_profiles where id=${String(c.payload.author_id ?? "")}`;
     if (!target.length) throw new ContentError("Choose a saved author.");
   }
+  if (c.type === "banner-section" && section === "modules") {
+    const taken = await sql`select id from content_modules where type='banner-section' and payload->>'key'=${String(c.payload.key)} and id<>${id}`;
+    if (taken.length) throw new ContentError("Another section already uses that key.");
+  }
+  if (c.type === "banner" && section === "modules") {
+    const key = String(c.payload.placement ?? "hero");
+    if (!BUILT_IN_SECTIONS.includes(key) && !(await sql`select id from content_modules where type='banner-section' and payload->>'key'=${key}`).length)
+      throw new ContentError("Choose where the banner shows: that section does not exist.");
+  }
   if (c.type === "testimonial" && (!c.payload.attribution || !(c.body || c.payload.quote))) throw new ContentError("A testimonial requires a quote and attribution.");
   let rows;
   if (section === "collections") {
@@ -159,11 +191,16 @@ export async function deleteContent(section: ContentSection, id: string, expecte
 // Moves a module one place among modules of its type and renumbers them 0, 10, 20... in one audited statement.
 export async function moveModule(id: string, direction: string) {
   if (direction !== "up" && direction !== "down") throw new ContentError("Invalid direction.");
-  const target = await sql`select type from content_modules where id=${id}` as { type: string }[];
+  const section = (p: string) => (p === "side-1" || p === "side-2" ? "side" : p);
+  const target = (await sql`select type, coalesce(payload->>'placement','hero') as placement from content_modules where id=${id}` as { type: string; placement: string }[]).map((r) => ({ ...r, placement: section(r.placement) }));
   if (!target.length) throw new ContentError("Module not found.");
-  const list = (await sql`select id from content_modules where type=${target[0].type} order by sort, id` as { id: string }[]).map((r) => r.id);
+  const rows = (await sql`select id, coalesce(payload->>'placement','hero') as placement from content_modules where type=${target[0].type} order by sort, id` as { id: string; placement: string }[]).map((r) => ({ ...r, placement: section(r.placement) }));
+  const list = rows.map((r) => r.id);
   const i = list.indexOf(id);
-  const j = direction === "up" ? i - 1 : i + 1;
+  // Swap with the nearest neighbour in the same banner section, so "up" always moves it within what the admin sees.
+  const step = direction === "up" ? -1 : 1;
+  let j = i + step;
+  while (j >= 0 && j < rows.length && rows[j].placement !== target[0].placement) j += step;
   if (j < 0 || j >= list.length) return;
   [list[i], list[j]] = [list[j], list[i]];
   await sql`with ordered as (

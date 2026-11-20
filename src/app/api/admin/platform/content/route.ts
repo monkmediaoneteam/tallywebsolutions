@@ -5,7 +5,9 @@ import { checkOrigin } from "@/lib/reader-auth";
 import { contentSections, saveContent, deleteContent, moveModule, ContentError, type ContentSection } from "@/lib/content";
 
 // Screens that may ask to be sent back after a save; anything else returns to the generic CMS page.
-const RETURN_PATHS = new Set(["/admin/banners"]);
+// Banner screens (list, new, one banner, sections, one section) may ask to be sent back; anything else returns to the generic CMS page.
+const BACK_PATH = /^\/admin\/banners(\/sections)?(\/[A-Za-z0-9_-]{1,120})?$/;
+const backPath = (value: FormDataEntryValue | null) => (typeof value === "string" && BACK_PATH.test(value) ? value : null);
 import { readLimitedForm, PublishingError } from "@/lib/submissions";
 
 export const runtime = "nodejs";
@@ -13,9 +15,11 @@ export async function POST(req: Request) {
   if (!checkOrigin(req)) return NextResponse.json({ error: "Origin rejected." }, { status: 403 });
   if (!(await isAdmin())) return NextResponse.json({ error: "Admin sign-in required." }, { status: 401 });
   let back: string | null = null;
+  let done: string | null = null;
   try {
     const form = await readLimitedForm(req, 60000);
-    back = RETURN_PATHS.has(String(form.get("return_to") ?? "")) ? String(form.get("return_to")) : null;
+    back = backPath(form.get("return_to"));
+    done = backPath(form.get("done_to")) ?? back;
     const section = String(form.get("section")) as ContentSection;
     if (!contentSections.includes(section)) return NextResponse.json({ error: "Unknown CMS section." }, { status: 400 });
     const id = String(form.get("id") ?? "");
@@ -32,14 +36,14 @@ export async function POST(req: Request) {
       }
       input.book_slugs = form.getAll("book_slugs");
       input.payload = form.has("payload") ? JSON.parse(String(form.get("payload") || "{}")) : Object.fromEntries(
-        ["subtitle", "attribution", "collection_slug", "author_id", "video_url", "theme", "size", "category_slug", "placement"].filter(key => form.get(key)).map(key => [key, form.get(key)])
+        ["subtitle", "attribution", "collection_slug", "author_id", "video_url", "theme", "size", "category_slug", "placement", "key", "position", "layout", "max", "columns", "width", "height", "mobile_width", "mobile_height", "autoplay", "empty", "fit", "enabled"].filter(key => form.get(key)).map(key => [key, form.get(key)])
       );
       if (form.getAll("category_slugs").length) (input.payload as Record<string, unknown>).category_slugs = form.getAll("category_slugs").map(String);
       await saveContent(section, id, expected || null, input);
     } else return NextResponse.json({ error: "Unknown content action." }, { status: 400 });
     revalidatePath("/");
     revalidatePath("/admin/platform");
-    return NextResponse.redirect(new URL(back ? `${back}?saved=1` : `/admin/platform/${section}?saved=1`, req.url), 303);
+    return NextResponse.redirect(new URL(done ? `${done}?saved=1` : `/admin/platform/${section}?saved=1`, req.url), 303);
   } catch (error) {
     if (back && (error instanceof ContentError || error instanceof PublishingError)) return NextResponse.redirect(new URL(`${back}?error=${encodeURIComponent(error.message)}`, req.url), 303);
     if (error instanceof PublishingError) return NextResponse.json({ error: error.message }, { status: error.status });

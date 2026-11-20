@@ -12,6 +12,7 @@
 @import "../styles/renovation.css";
 @import "../styles/shelf.css";
 @import "../styles/software.css";
+@import "../styles/banners.css";
 
 /* Tailwind utilities used by admin and account pages, mapped onto the storefront palette. */
 @theme {
