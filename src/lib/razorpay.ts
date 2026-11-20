@@ -21,10 +21,13 @@ export function checkoutConfiguration() {
 // For the admin dashboard: every reason checkout is off, by variable name only (never values).
 export function checkoutProblems(): string[] {
   const problems: string[] = [];
-  if (!flag("COMMERCE_ENABLED")) problems.push("COMMERCE_ENABLED must be exactly true");
-  if (!flag("COMMERCE_POLICIES_APPROVED")) problems.push("COMMERCE_POLICIES_APPROVED must be exactly true");
+  // "Not set" means this deployment does not receive the variable at all (wrong environment, project or name);
+  // anything else means it arrives but with an unusable value.
+  const unset = (name: string) => !process.env[name]?.trim();
+  for (const name of ["COMMERCE_ENABLED", "COMMERCE_POLICIES_APPROVED"])
+    if (!flag(name)) problems.push(unset(name) ? `${name} is not set in this deployment (it should be true)` : `${name} is set, but not to true`);
   for (const name of ["DATABASE_URL", "DOWNLOAD_SECRET", "RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "RESEND_API_KEY", "MAIL_FROM", "NEXT_PUBLIC_SITE_URL", "CRON_SECRET", "LEGAL_ENTITY_NAME", "LEGAL_ENTITY_ADDRESS", "SUPPORT_EMAIL", "AUTH_SECRET"])
-    if (!env(name)) problems.push(`${name} is missing or still a placeholder`);
+    if (!env(name)) problems.push(unset(name) ? `${name} is not set in this deployment` : `${name} is set, but looks like a placeholder value`);
   for (const name of ["AUTH_SECRET", "DOWNLOAD_SECRET"]) if (env(name) && env(name)!.length < 32) problems.push(`${name} must be at least 32 characters`);
   if (env("SUPPORT_EMAIL") && !/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(env("SUPPORT_EMAIL")!)) problems.push("SUPPORT_EMAIL is not a valid email");
   for (const name of ["LEGAL_ENTITY_NAME", "LEGAL_ENTITY_ADDRESS", "SUPPORT_EMAIL"])
@@ -34,6 +37,11 @@ export function checkoutProblems(): string[] {
     catch { problems.push("NEXT_PUBLIC_SITE_URL is not a valid URL"); }
   }
   return problems;
+}
+// Which deployment ran the check, so admins can tell whether Production received their settings. No secrets.
+export function deploymentInfo() {
+  const v = (name: string) => process.env[name]?.trim() || null;
+  return { environment: v("VERCEL_ENV"), branch: v("VERCEL_GIT_COMMIT_REF"), commit: v("VERCEL_GIT_COMMIT_SHA")?.slice(0, 7) ?? null };
 }
 export class PaymentLinkCreationRejected extends Error {}
 
