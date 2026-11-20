@@ -2,9 +2,10 @@ import { getBooks } from "@/lib/db";
 import { flag } from "@/lib/env";
 import { publicBook, visibleBook } from "@/components/book-data";
 import CartContents from "./CartContents";
+import { seoMetadata } from "@/lib/seo-meta";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Your bag", robots: { index: false, follow: false } };
+export async function generateMetadata() { return seoMetadata("/cart"); }
 
 export default async function CartPage() {
   const books = (await getBooks()).filter(visibleBook).map((book) => publicBook(book));

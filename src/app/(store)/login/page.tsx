@@ -1,6 +1,8 @@
 import LoginForm from './LoginForm';
 import { env } from '@/lib/env';
-export const metadata = { title: 'Sign in', robots: { index: false, follow: false } };
+import { seoMetadata } from "@/lib/seo-meta";
+export const dynamic = "force-dynamic";
+export async function generateMetadata() { return seoMetadata("/login"); }
 export default async function Login({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const params = await searchParams;
   const next = params.next?.startsWith('/') && !params.next.startsWith('//') && !params.next.includes('\\') ? params.next : '/library';

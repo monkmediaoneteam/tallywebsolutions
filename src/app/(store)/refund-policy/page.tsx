@@ -1,9 +1,12 @@
 import { Legal, ENTITY } from "@/components/legal";
-export const metadata = { title: "Refund Policy" };
+import { seoMetadata, SeoHead } from "@/lib/seo-meta";
+export const dynamic = "force-dynamic";
+export async function generateMetadata() { return seoMetadata("/refund-policy"); }
 
 export default function Page() {
   return (
     <Legal title="Refund Policy">
+      <SeoHead path="/refund-policy" />
       <p><strong>Digital add-ons cannot be returned once downloaded.</strong> This
       is stated at checkout before you pay.</p>
       <p>We will refund you in full if:</p>

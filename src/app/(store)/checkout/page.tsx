@@ -3,9 +3,10 @@ import { flag } from "@/lib/env";
 import { getBooks } from "@/lib/db";
 import { publicBook, visibleBook } from "@/components/book-data";
 import CheckoutForm from "./CheckoutForm";
+import { seoMetadata } from "@/lib/seo-meta";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Checkout", robots: { index: false, follow: false } };
+export async function generateMetadata() { return seoMetadata("/checkout"); }
 
 export default async function Checkout({ searchParams }: { searchParams: Promise<{ book?: string | string[] }> }) {
   const [query, records] = await Promise.all([searchParams, getBooks()]);
