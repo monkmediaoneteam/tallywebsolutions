@@ -14,6 +14,7 @@ try {
   // Releases attribute the book to its author profile; the catalogue migration that adds author_slug follows in order.
   await db.exec(readFileSync(new URL('../migrations/004-catalogue.sql', import.meta.url), 'utf8'));
   await db.exec(readFileSync(new URL('../migrations/007-marketplace.sql', import.meta.url), 'utf8'));
+  await db.exec(readFileSync(new URL('../migrations/011-banner-sections.sql', import.meta.url), 'utf8'));
   const defaults = (await db.query("select third_party,release_approved,scan_status from books where slug='existing-title'")).rows[0];
   assert.deepEqual(defaults, { third_party: false, release_approved: false, scan_status: 'pending' });
   globalThis.publishingTestSql = async (parts, ...values) => {
@@ -183,9 +184,15 @@ try {
   assert.deepEqual(publicContent.modules.map(m => m.id), ['m3', 'm4']);
   assert.deepEqual(publicContent.collections[0].book_slugs, ['released-title', 'existing-title']);
   assert.equal(publicContent.authors.length, 0);
-  // Banner placement: hero or one of the two side cards; anything else is refused.
-  await c.saveContent('modules', '', null, { title: 'Side art', type: 'banner', status: 'draft', payload: { placement: 'side-2' } });
-  await assert.rejects(c.saveContent('modules', '', null, { title: 'Bad place', type: 'banner', payload: { placement: 'footer' } }), /where the banner shows/);
+  // Banner placement: a built-in section or a saved one; anything else is refused. Section keys are unique.
+  await c.saveContent('modules', '', null, { title: 'Side art', type: 'banner', status: 'draft', image_url: '/api/media/x', payload: { placement: 'side-2' } });
+  await assert.rejects(c.saveContent('modules', '', null, { title: 'Bad place', type: 'banner', image_url: '/api/media/z', payload: { placement: 'footer' } }), /where the banner shows/);
+  await assert.rejects(c.saveContent('modules', '', null, { title: 'No art', type: 'banner', payload: { placement: 'hero' } }), /Add an image for this banner/, 'a banner is its image');
+  const gst = { key: 'gst-row', position: 'home-after-products', layout: 'grid', max: '3', columns: '3', width: '800', height: '450', mobile_width: '800', mobile_height: '600', autoplay: '0', empty: 'hide', enabled: 'on' };
+  await c.saveContent('modules', '', null, { title: 'GST row', type: 'banner-section', status: 'published', payload: gst });
+  await c.saveContent('modules', 'ga', null, { title: 'GST art', type: 'banner', status: 'draft', image_url: '/api/media/g', payload: { placement: 'gst-row' } });
+  await q("delete from content_modules where id='ga'");
+  await assert.rejects(c.saveContent('modules', '', null, { title: 'Again', type: 'banner-section', status: 'published', payload: gst }), /already uses that key/);
   await q("delete from content_modules where title='Side art'");
   let record = (await c.getAdminContent('modules')).find(r => r.id === 'm1');
   // Admin screens get timestamps a browser can parse (the banner editor shows them in India time).
@@ -200,7 +207,7 @@ try {
   await c.saveContent('authors', author.id, author.updated_at, { title: 'Test author', body: 'Reviewed biography', status: 'published' });
   assert.equal((await c.getPublicContent()).authors[0].name, 'Test author');
   // Banner ordering: move swaps neighbours of the same type, is audited, and stops at the ends.
-  for (const [id, sort] of [['b1', 0], ['b2', 0], ['b3', 5]]) await c.saveContent('modules', id, null, { title: `Banner ${id}`, type: 'banner', status: 'published', sort });
+  for (const [id, sort] of [['b1', 0], ['b2', 0], ['b3', 5]]) await c.saveContent('modules', id, null, { title: `Banner ${id}`, type: 'banner', status: 'published', sort, image_url: `/api/media/${id}` });
   const bannerOrder = async () => (await q("select id from content_modules where type='banner' order by sort, id")).map(r => r.id);
   assert.deepEqual(await bannerOrder(), ['b1', 'b2', 'b3']);
   await c.moveModule('b3', 'up');

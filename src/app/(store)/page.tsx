@@ -1,7 +1,8 @@
 import { getPublicContent } from "@/lib/content";
 import { flag } from "@/lib/env";
 import { bestsellerSlugs, getCategories, getPublishedAuthors, getStoreBooks } from "@/lib/store-data";
-import { buildHome } from "@/lib/home";
+import { buildHome, sectionsAt } from "@/lib/home";
+import type { Position } from "@/lib/banner-sections";
 import { siteUrl } from "@/lib/store";
 import HeroCampaign from "@/components/home/HeroCampaign";
 import CategoryTiles from "@/components/home/CategoryTiles";
@@ -13,6 +14,7 @@ import PublishBand from "@/components/home/PublishBand";
 import FaqGrid from "@/components/home/FaqGrid";
 import HomeSide from "@/components/home/HomeSide";
 import ShopStrip from "@/components/home/ShopStrip";
+import { SectionList } from "@/components/home/BannerSectionView";
 
 export const dynamic = "force-dynamic";
 export const metadata = { alternates: { canonical: siteUrl() } };
@@ -25,18 +27,24 @@ export default async function Home() {
   const covers = [...(home.rails.find((r) => r.key === "bestsellers")?.books ?? []), ...books]
     .filter((b, i, all) => b.cover && all.findIndex((x) => x.slug === b.slug) === i).slice(0, 3)
     .map(({ slug, title, cover }) => ({ slug, title, cover }));
+  const at = (position: Position) => sectionsAt(home.sections, position);
+  const main = at("home-top-main"), side = at("home-top-side");
+  // Banner sections are set in Admin > Banners > Sections. Empty top sections fall back to the store's own hero and product cards.
   return <>
-    <div className="wrap home-top">
-      <HeroCampaign banners={home.banners} covers={covers} />
-      <HomeSide books={books} banners={home.sideBanners} />
-    </div>
+    {(main.length > 0 || side.length > 0) && <div className={`wrap home-top${side.length ? "" : " home-top-full"}`}>
+      <div className="home-main"><SectionList list={main} eager fallback={<HeroCampaign banners={[]} covers={covers} />} /></div>
+      {side.length > 0 && <div className="home-side"><SectionList list={side} fallback={<HomeSide books={books} />} /></div>}
+    </div>}
     <ShopStrip />
     <CategoryTiles tiles={home.categoryTiles.map(({ slug, name, count, image, covers: c }) => ({ slug, name, count, image, covers: c }))} />
+    <SectionList list={at("home-after-categories")} wrap="wrap section" />
     <Featured books={books} rails={home.rails} enabled={enabled} />
+    <SectionList list={at("home-after-products")} wrap="wrap section" />
     <LookInside books={books} />
     <LanguageStrip languages={home.languages} />
     <AuthorChips authors={home.authors} />
     <PublishBand covers={covers} />
+    <SectionList list={at("home-before-faq")} wrap="wrap section" />
     <FaqGrid />
   </>;
 }

@@ -1,92 +1,120 @@
 import { redirect } from "next/navigation";
-import { ArrowDown, ArrowUp, Plus } from "lucide-react";
+import { ArrowDown, ArrowUp, Layers, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { isAdmin } from "@/lib/admin-auth";
 import { getAdminContent } from "@/lib/content";
 import AdminShell from "@/components/AdminShell";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
-import ImageField from "@/components/ImageField";
+import { LAYOUTS, mergeSections, ratio, sectionKeyOf, toIndiaInput } from "@/lib/banner-sections";
+import type { AdminBanner } from "./BannerForm";
+import { TONE, bannerState } from "./banner-state";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Banners", robots: { index: false, follow: false } };
 
-type Banner = { id: string; title: string; body: string | null; image_url: string | null; mobile_image_url: string | null; link_url: string | null; link_label: string | null;
-  payload: Record<string, unknown>; sort: number; status: string; publish_at: string | null; ends_at: string | null; updated_at: string };
+const icon = "grid h-8 w-8 place-items-center rounded-1 text-ink-soft hover:bg-bg-3 hover:text-ink disabled:opacity-30 disabled:hover:bg-transparent";
 
-// Where a banner shows on the homepage. Side cards sit beside the hero; without one, the store shows a product there.
-const PLACEMENTS = { hero: "Hero (rotating, top of the homepage)", "side-1": "Side card 1 (top right)", "side-2": "Side card 2 (bottom right)" } as const;
-const placementOf = (b?: Banner) => (typeof b?.payload?.placement === "string" && b.payload.placement in PLACEMENTS ? b.payload.placement : "hero") as keyof typeof PLACEMENTS;
-
-// Payload settings this form does not edit (set under Homepage sections); sent back unchanged so saving keeps them.
-const KEPT_PAYLOAD = ["attribution", "collection_slug", "author_id", "video_url", "theme", "size", "category_slug"];
-
-// Stored instants are shown and entered in India time.
-function toIndiaInput(value: string | null) {
-  if (!value) return "";
-  const t = Date.parse(value.includes("T") ? value : value.replace(" ", "T"));
-  if (!Number.isFinite(t)) return "";
-  return new Date(t + 330 * 60000).toISOString().slice(0, 16);
-}
-const isLive = (b: Banner, now = Date.now()) => b.status === "published" && (!b.publish_at || Date.parse(b.publish_at.replace(" ", "T")) <= now) && (!b.ends_at || Date.parse(b.ends_at.replace(" ", "T")) > now);
-
-export default async function BannersPage({ searchParams }: { searchParams: Promise<{ saved?: string; error?: string }> }) {
-  const { saved, error } = await searchParams;
+export default async function BannersPage({ searchParams }: { searchParams: Promise<{ saved?: string; error?: string; q?: string; section?: string }> }) {
+  const { saved, error, q = "", section: only = "" } = await searchParams;
   if (!(await isAdmin())) redirect("/admin/login");
-  const banners = (await getAdminContent("modules") as unknown as Banner[]).filter((m) => (m as unknown as { type: string }).type === "banner");
-  return <AdminShell active="banners" title="Banners" subtitle="Images for the homepage hero and the two side cards. Upload your own artwork; live banners show in this order.">
-    {saved && <p className="mb-4 rounded-2 border border-brand/30 bg-brand/5 px-4 py-3 text-[15px] text-brand" role="status">Saved. The homepage is updated.</p>}
-    {error && <p className="mb-4 rounded-2 border border-danger/30 bg-danger/10 px-4 py-3 text-[15px] text-danger" role="alert">{error}</p>}
-    <details className="mb-6 rounded-xl border border-line bg-white p-4" open={!banners.length}>
-      <summary className="flex cursor-pointer items-center gap-2 font-medium"><Plus size={16} aria-hidden="true" /> New banner</summary>
-      <div className="pt-4"><BannerForm /></div>
-    </details>
-    {!banners.length && <p className="text-sm text-ink-soft">No banners yet. Without one, the homepage shows its default hero.</p>}
-    <ol className="grid gap-3">{banners.map((b, i) => <li key={b.id} className="rounded-xl border border-line bg-white p-4">
-      <div className="grid items-start gap-4 md:grid-cols-[220px_minmax(0,1fr)_auto]">
-        <div className="relative aspect-[16/7] overflow-hidden rounded-lg bg-bg-3">
-          {b.image_url ? <img src={b.image_url} alt="" className="h-full w-full object-cover" /> : <span className="grid h-full w-full place-items-center bg-bg-2 text-xs text-ink-soft">No image yet</span>}
-          {b.image_url && <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2 text-[13px] font-medium text-white">{b.title}</span>}
-        </div>
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-semibold">{b.title}</h2>
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${isLive(b) ? "bg-brand/10 text-brand" : "bg-bg-3 text-ink-soft"}`}>{isLive(b) ? "Live" : b.status === "published" ? "Scheduled or ended" : b.status}</span>
-            <span className="rounded-full border border-line px-2.5 py-0.5 text-xs text-ink-soft">{PLACEMENTS[placementOf(b)].split(" (")[0]}</span>{!b.image_url && <span className="rounded-full bg-gold/10 px-2.5 py-0.5 text-xs text-gold">No image</span>}</div>
-          {typeof b.payload?.subtitle === "string" && <p className="text-sm text-ink-soft">{b.payload.subtitle}</p>}
-          <p className="mt-1 text-sm text-ink-soft">{b.link_url ? `Links to ${b.link_url}` : "No link"}{b.publish_at ? ` · from ${toIndiaInput(b.publish_at).replace("T", " ")}` : ""}{b.ends_at ? ` · until ${toIndiaInput(b.ends_at).replace("T", " ")}` : ""}</p>
-        </div>
-        <div className="flex gap-2">
-          {(["up", "down"] as const).map((direction) => <form key={direction} action="/api/admin/platform/content" method="post">
-            <input type="hidden" name="section" value="modules" /><input type="hidden" name="id" value={b.id} /><input type="hidden" name="action" value="move" />
-            <input type="hidden" name="direction" value={direction} /><input type="hidden" name="return_to" value="/admin/banners" />
-            <button type="submit" className="round-btn" aria-label={`Move ${b.title} ${direction}`} disabled={direction === "up" ? i === 0 : i === banners.length - 1}>
-              {direction === "up" ? <ArrowUp size={16} aria-hidden="true" /> : <ArrowDown size={16} aria-hidden="true" />}</button></form>)}
-        </div>
-      </div>
-      <details className="mt-3 border-t border-line pt-3"><summary className="cursor-pointer text-sm font-medium">Edit</summary><div className="pt-4"><BannerForm banner={b} /></div></details>
-    </li>)}</ol>
-  </AdminShell>;
-}
+  const modules = await getAdminContent("modules") as unknown as (AdminBanner & { type: string })[];
+  const sections = mergeSections(modules);
+  const bySection = new Map(sections.map((s) => [s.key, s]));
+  const all = modules.filter((m) => m.type === "banner").map((b) => ({ b, key: sectionKeyOf(b.payload?.placement) }));
+  const needle = q.trim().toLowerCase().slice(0, 100);
+  const filter = bySection.has(only) ? only : "";
+  // Table order follows the page: section by section, each in its admin-set order.
+  const order = (key: string) => { const i = sections.findIndex((s) => s.key === key); return i < 0 ? 999 : i; };
+  const rows = all.filter(({ b, key }) => (!filter || key === filter) && (!needle || b.title.toLowerCase().includes(needle)))
+    .sort((a, b) => order(a.key) - order(b.key) || a.b.sort - b.b.sort || a.b.id.localeCompare(b.b.id));
+  const now = Date.now();
+  const live = all.filter(({ b }) => bannerState(b, now).live).length;
+  const href = (key: string) => `/admin/banners${key || q ? `?${new URLSearchParams({ ...(q ? { q } : {}), ...(key ? { section: key } : {}) })}` : ""}`;
 
-function BannerForm({ banner }: { banner?: Banner }) {
-  const input = "field-input mt-1";
-  return <form action="/api/admin/platform/content" method="post" className="grid gap-4 sm:grid-cols-2">
-    <input type="hidden" name="section" value="modules" /><input type="hidden" name="type" value="banner" />
-    <input type="hidden" name="id" value={banner?.id ?? ""} /><input type="hidden" name="updated_at" value={banner?.updated_at ?? ""} />
-    <input type="hidden" name="sort" value={String(banner?.sort ?? 1000)} /><input type="hidden" name="return_to" value="/admin/banners" />
-    {KEPT_PAYLOAD.filter((k) => typeof banner?.payload?.[k] === "string" && banner.payload[k]).map((k) => <input key={k} type="hidden" name={k} value={String(banner!.payload[k])} />)}
-    {Array.isArray(banner?.payload?.category_slugs) && (banner.payload.category_slugs as unknown[]).map((c) => <input key={`c-${String(c)}`} type="hidden" name="category_slugs" value={String(c)} />)}
-    <label className="text-sm">Headline<input name="title" required maxLength={200} className={input} defaultValue={banner?.title ?? ""} placeholder="GST season offers" /></label>
-    <label className="text-sm">Small label above<input name="subtitle" maxLength={200} className={input} defaultValue={typeof banner?.payload?.subtitle === "string" ? banner.payload.subtitle : ""} placeholder="Limited time" /></label>
-    <label className="text-sm sm:col-span-2">One line of text<input name="body" maxLength={160} className={input} defaultValue={banner?.body ?? ""} placeholder="Up to 20% off selected add-ons" /></label>
-    <label className="text-sm sm:col-span-2">Where it shows<select name="placement" className={input} defaultValue={placementOf(banner)}>
-      {Object.entries(PLACEMENTS).map(([value, text]) => <option key={value} value={value}>{text}</option>)}</select></label>
-    <ImageField name="image_url" label="Image" value={banner?.image_url ?? ""} hint="Hero: wide, about 1600 × 700. Side cards: about 800 × 600. JPEG, PNG or WebP, up to 5 MB." />
-    <ImageField name="mobile_image_url" label="Phone image (optional)" value={banner?.mobile_image_url ?? ""} ratio="4 / 5" hint="Shown on phones instead, about 800 × 1000. Leave empty to use the main image." />
-    <label className="text-sm">Button link<input name="link_url" maxLength={2000} className={input} defaultValue={banner?.link_url ?? ""} placeholder="/search?offer=1" /></label>
-    <label className="text-sm">Button text<input name="link_label" maxLength={100} className={input} defaultValue={banner?.link_label ?? ""} placeholder="Shop offers" /></label>
-    <label className="text-sm">Starts (India time, optional)<input name="publish_at" type="datetime-local" className={input} defaultValue={toIndiaInput(banner?.publish_at ?? null)} /></label>
-    <label className="text-sm">Ends (India time, optional)<input name="ends_at" type="datetime-local" className={input} defaultValue={toIndiaInput(banner?.ends_at ?? null)} /></label>
-    <label className="text-sm">Status<select name="status" className={input} defaultValue={banner?.status ?? "published"}><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select></label>
-    <div className="flex items-end gap-3"><button name="action" value="save" type="submit" className="btn btn-primary">{banner ? "Save banner" : "Add banner"}</button>
-      {banner && <ConfirmSubmit name="action" value="delete" formNoValidate className="btn btn-ghost" message={`Delete the banner "${banner.title}"? This cannot be undone.`}>Delete</ConfirmSubmit>}</div>
-  </form>;
+  return <AdminShell active="banners" title="Banners" subtitle={`${all.length} banner${all.length === 1 ? "" : "s"} · ${live} live · ${sections.filter((s) => s.enabled).length} sections on`}
+    actions={<div className="flex flex-wrap gap-2">
+      <a className="btn btn-ghost" href="/admin/banners/sections"><Layers size={16} aria-hidden="true" />Sections and layout</a>
+      <a className="btn btn-primary" href={`/admin/banners/new${filter ? `?section=${filter}` : ""}`}><Plus size={16} aria-hidden="true" />Add banner</a>
+    </div>}>
+    {saved && <p className="mb-4 rounded-2 border border-brand/30 bg-brand/5 px-4 py-3 text-[15px] text-brand" role="status">Saved. The site is updated.</p>}
+    {error && <p className="mb-4 rounded-2 border border-danger/30 bg-danger/10 px-4 py-3 text-[15px] text-danger" role="alert"><strong>Not saved.</strong> {error}</p>}
+
+    <div className="overflow-hidden rounded-xl border border-line bg-white">
+      <div className="flex flex-wrap items-center gap-3 border-b border-line p-4">
+        <form method="get" className="flex min-w-0 flex-1 items-center gap-2" role="search">
+          {filter && <input type="hidden" name="section" value={filter} />}
+          <label className="sr-only" htmlFor="banner-search">Search banners</label>
+          <div className="relative min-w-0 max-w-sm flex-1">
+            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" aria-hidden="true" />
+            <input id="banner-search" name="q" defaultValue={q} placeholder="Search banner name" className="field-input w-full pl-9" />
+          </div>
+          <button className="btn btn-ghost" type="submit">Search</button>
+          {(q || filter) && <a className="text-sm text-ink-soft underline" href="/admin/banners">Reset</a>}
+        </form>
+        <nav aria-label="Filter by section" className="flex flex-wrap gap-1">
+          {[{ key: "", name: "All", n: all.length }, ...sections.map((s) => ({ key: s.key, name: s.name, n: all.filter((x) => x.key === s.key).length }))].map(({ key, name, n }) =>
+            <a key={key || "all"} href={href(key)} aria-current={filter === key ? "page" : undefined}
+              className={`rounded-full border px-3 py-1 text-sm ${filter === key ? "border-brand bg-brand text-white" : "border-line text-ink-soft hover:bg-bg-3 hover:text-ink"}`}>
+              {name} <span className="tabular-nums opacity-70">{n}</span></a>)}
+        </nav>
+      </div>
+
+      {rows.length ? <div className="overflow-x-auto"><table className="w-full min-w-[820px] text-sm">
+        <thead className="bg-bg-2"><tr className="text-left text-ink-soft">
+          <th scope="col" className="p-3 font-medium">Banner</th>
+          <th scope="col" className="p-3 font-medium">Section</th>
+          <th scope="col" className="p-3 font-medium">Status</th>
+          <th scope="col" className="p-3 font-medium">Schedule</th>
+          <th scope="col" className="p-3 text-right font-medium">Order</th>
+          <th scope="col" className="p-3 text-right font-medium">Actions</th>
+        </tr></thead>
+        <tbody>{rows.map(({ b, key }) => {
+          const section = bySection.get(key);
+          const state = bannerState(b, now);
+          const mates = all.filter((x) => x.key === key).sort((x, y) => x.b.sort - y.b.sort || x.b.id.localeCompare(y.b.id)).map((x) => x.b.id);
+          const pos = mates.indexOf(b.id);
+          const liveMates = all.filter((x) => x.key === key && bannerState(x.b, now).live).sort((x, y) => x.b.sort - y.b.sort || x.b.id.localeCompare(y.b.id)).map((x) => x.b.id);
+          const waiting = state.live && section && liveMates.indexOf(b.id) >= section.max;
+          const edit = `/admin/banners/${encodeURIComponent(b.id)}`;
+          return <tr key={b.id} className="border-t border-line hover:bg-bg-2">
+            <td className="p-3"><div className="flex items-center gap-3">
+              <a href={edit} className="block w-36 shrink-0 overflow-hidden rounded-1 border border-line bg-bg-2" style={{ aspectRatio: section ? ratio(section.width, section.height) : "16 / 7" }} aria-label={`Edit ${b.title}`}>
+                {b.image_url ? <img src={b.image_url} alt="" className="h-full w-full" style={{ objectFit: section?.fit ?? "cover" }} /> : <span className="grid h-full w-full place-items-center text-[11px] text-ink-soft">No image</span>}</a>
+              <div className="min-w-0"><a href={edit} className="font-medium hover:underline">{b.title}</a>
+                <p className="truncate text-xs text-ink-soft">{b.link_url ? `Links to ${b.link_url}` : "Not linked"}{b.mobile_image_url ? " · phone image" : ""}</p></div>
+            </div></td>
+            <td className="p-3">{section ? <><a className="hover:underline" href={href(key)}>{section.name}</a>
+              <p className="text-xs text-ink-soft">{LAYOUTS[section.layout].split(":")[0]}{section.enabled ? "" : " · section off"}</p></>
+              : <span className="rounded-full bg-danger/10 px-2.5 py-0.5 text-xs font-medium text-danger">Section deleted</span>}</td>
+            <td className="p-3"><span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${TONE[state.tone]}`}>
+              <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />{state.label}</span>
+              {waiting && <p className="mt-1 text-xs text-ink-soft">Not showing: section shows {section!.max}</p>}
+              {state.live && section && !section.enabled && <p className="mt-1 text-xs text-ink-soft">Section is off</p>}</td>
+            <td className="p-3 text-xs text-ink-soft">{b.publish_at || b.ends_at ? <>{b.publish_at ? <>from {toIndiaInput(b.publish_at).replace("T", " ")}</> : null}{b.publish_at && b.ends_at ? <br /> : null}{b.ends_at ? <>until {toIndiaInput(b.ends_at).replace("T", " ")}</> : null}</> : "Always"}</td>
+            <td className="p-3"><div className="flex justify-end gap-1">
+              {(["up", "down"] as const).map((direction) => <form key={direction} action="/api/admin/platform/content" method="post">
+                <input type="hidden" name="section" value="modules" /><input type="hidden" name="id" value={b.id} /><input type="hidden" name="action" value="move" />
+                <input type="hidden" name="direction" value={direction} /><input type="hidden" name="return_to" value="/admin/banners" />
+                <button type="submit" className={icon} aria-label={`Move ${b.title} ${direction}`} disabled={direction === "up" ? pos <= 0 : pos >= mates.length - 1}>
+                  {direction === "up" ? <ArrowUp size={16} aria-hidden="true" /> : <ArrowDown size={16} aria-hidden="true" />}</button></form>)}
+            </div></td>
+            <td className="p-3"><div className="flex justify-end gap-1">
+              <a href={edit} className={icon} title="Edit" aria-label={`Edit ${b.title}`}><Pencil size={16} aria-hidden="true" /></a>
+              <form action="/api/admin/platform/content" method="post">
+                <input type="hidden" name="section" value="modules" /><input type="hidden" name="id" value={b.id} /><input type="hidden" name="updated_at" value={b.updated_at} />
+                <input type="hidden" name="return_to" value="/admin/banners" />
+                <ConfirmSubmit name="action" value="delete" className={`${icon} !text-danger hover:!bg-danger/10`} title="Delete" aria-label={`Delete ${b.title}`}
+                  message={`Delete the banner "${b.title}"? This cannot be undone.`}><Trash2 size={16} aria-hidden="true" /></ConfirmSubmit>
+              </form>
+            </div></td>
+          </tr>;
+        })}</tbody>
+      </table></div>
+        : <p className="p-8 text-center text-sm text-ink-soft">{all.length ? "No banners match this search." : "No banners yet. Use Add banner to create the first one."}</p>}
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 text-sm text-ink-soft">
+        <span>Showing {rows.length} of {all.length}</span>
+        <span>Where banners show, their layout, count and image size are set under <a className="underline" href="/admin/banners/sections">Sections and layout</a>.</span>
+      </div>
+    </div>
+  </AdminShell>;
 }

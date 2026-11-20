@@ -70,6 +70,32 @@ assert.throws(() => content.validateContent('modules', { title: 'x', type: 'prom
 assert.throws(() => content.validateContent('modules', { title: 'x', type: 'genre-switcher', payload: { category_slugs: Array(9).fill('a') } }), /categor/);
 assert.throws(() => content.validateContent('modules', { title: 'x', publish_at: '2026-10-21T00:00:00Z', ends_at: '2026-10-20T00:00:00Z' }), /end/);
 const helpers = loadModule('src/components/content-data.ts', { '@/lib/content': content });
+// The server's banner section options match the ones the storefront and admin use.
+{
+  const c = await load('../src/lib/content.ts');
+  const bs = await load('../src/lib/banner-sections.ts');
+  assert.deepEqual(c.BANNER_POSITIONS, Object.keys(bs.POSITIONS));
+  assert.deepEqual(c.BANNER_LAYOUTS, Object.keys(bs.LAYOUTS));
+  for (const s of bs.DEFAULT_SECTIONS) assert.ok(c.BUILT_IN_SECTIONS.includes(s.key), `${s.key} is a built-in section on the server`);
+  const sectionPayload = { key: 'gst-row', position: 'home-after-products', layout: 'grid', max: '3', columns: '3', width: '800', height: '450', mobile_width: '800', mobile_height: '600', autoplay: '0', empty: 'hide', enabled: 'on' };
+  assert.equal(c.validateContent('modules', { title: 'GST', type: 'banner-section', payload: sectionPayload }).type, 'banner-section');
+  for (const [field, bad] of [['key', 'Bad Key'], ['position', 'footer'], ['layout', 'mosaic'], ['max', '0'], ['columns', '9'], ['width', '50'], ['height', '9000'], ['autoplay', '-1'], ['empty', 'maybe'], ['enabled', 'yes']])
+    assert.throws(() => c.validateContent('modules', { title: 'x', type: 'banner-section', payload: { ...sectionPayload, [field]: bad } }), undefined, `section ${field}=${bad} is refused`);
+  assert.throws(() => c.validateContent('modules', { title: 'x', type: 'banner', image_url: '/a.png', payload: { placement: 'Not a slug' } }));
+  assert.equal(c.validateContent('modules', { title: 'Fit', type: 'banner-section', payload: { ...sectionPayload, fit: 'contain' } }).payload.fit, 'contain');
+  assert.throws(() => c.validateContent('modules', { title: 'x', type: 'banner-section', payload: { ...sectionPayload, fit: 'stretch' } }), /fit/, 'an unknown image fit is refused');
+  assert.throws(() => c.validateContent('modules', { title: 'x', type: 'banner-section', payload: { ...sectionPayload, key: 'new' } }), /reserved/, 'a key that clashes with a screen address is refused');
+  assert.equal(bs.sectionFromModule({ id: 's', title: 'x', sort: 0, payload: { key: 'hero', fit: 'contain' } }).fit, 'contain');
+  assert.equal(bs.sectionFromModule({ id: 's', title: 'x', sort: 0, payload: { key: 'hero', fit: 'stretch' } }).fit, 'cover', 'a stored odd fit falls back to cover');
+  for (const p of bs.SIZE_PRESETS) for (const [v, k] of [[p.width, 'width'], [p.height, 'height'], [p.mobileWidth, 'width'], [p.mobileHeight, 'height']]) assert.ok(v >= bs.LIMITS[k][0] && v <= bs.LIMITS[k][1], `preset ${p.label} ${k} is within limits`);
+  assert.throws(() => c.validateContent('modules', { title: 'x', type: 'banner', payload: { placement: 'hero' } }), /Add an image/);
+  assert.equal(bs.sectionKeyOf('side-2'), 'side'); assert.equal(bs.sectionKeyOf(undefined), 'hero');
+  const merged = bs.mergeSections([{ id: 's', type: 'banner-section', title: 'Hero', sort: 0, payload: { key: 'hero', layout: 'grid', max: 99, width: 1200, height: 600 } },
+    { id: 'n', type: 'banner-section', title: 'GST', sort: 50, payload: sectionPayload }]);
+  const hero = merged.find((x) => x.key === 'hero');
+  assert.equal(hero.layout, 'grid'); assert.equal(hero.max, 8, 'an out-of-range count falls back to the default'); assert.equal(hero.width, 1200);
+  assert.equal(merged.length, bs.DEFAULT_SECTIONS.length + 1); assert.equal(merged.find((x) => x.key === 'gst-row').builtIn, false);
+}
 const base = { id: 'm', type: 'banner', title: 't', status: 'published', publish_at: null, sort: 0, payload: {} };
 assert.equal(helpers.publicModules([{ ...base, ends_at: '2026-10-14T00:00:00Z' }], new Date('2026-10-15T00:00:00Z')).length, 0);
 assert.equal(helpers.publicModules([{ ...base, ends_at: '2026-10-16T00:00:00Z' }], new Date('2026-10-15T00:00:00Z')).length, 1);

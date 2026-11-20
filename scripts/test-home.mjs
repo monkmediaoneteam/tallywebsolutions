@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { load } from './test-commerce.mjs';
 
 // home.ts reaches content.ts (via content-data), which imports the database client; the pure helpers never call it.
-const { buildHome } = load('src/lib/home.ts', { './db': { sql() { throw new Error('No database in home tests'); } } });
+const { buildHome, bannerSections, sectionsAt } = load('src/lib/home.ts', { './db': { sql() { throw new Error('No database in home tests'); } } });
 const now = new Date('2026-10-15T00:00:00Z');
 const book = (slug, extra = {}) => ({ slug, title: slug, cover: `/c/${slug}.png`, authorship: 'A', author_slug: null, category_slug: 'fiction', language: 'English',
   saleable: true, saveable: true, price: 100, regular: 100, onSale: false, saving: 0, comingSoon: false, release_date: '2026-01-01', year: 2026, ...extra });
@@ -17,14 +17,28 @@ const mod = (id, type, extra = {}) => ({ id, type, title: id, body: null, image_
 
 const home = buildHome({ books, categories, now, bestsellers: ['ghost', 'd', 'a'],
   authors: [{ id: 'au1', name: 'Author One', photo_url: null }, { id: 'au2', name: 'No Books', photo_url: null }],
-  modules: [mod('b1', 'banner', { sort: 2 }), mod('b0', 'banner', { sort: 1 }), mod('old', 'banner', { ends_at: '2026-10-01T00:00:00Z' }),
-    mod('s1', 'banner', { sort: 3, image_url: '/api/media/x', payload: { placement: 'side-1' } }), mod('s2', 'banner', { sort: 4, payload: { placement: 'side-2' } }), mod('s1b', 'banner', { sort: 5, payload: { placement: 'side-1' } }),
+  modules: [mod('b1', 'banner', { sort: 2, image_url: '/api/media/b1' }), mod('b0', 'banner', { sort: 1, image_url: '/api/media/b0' }), mod('old', 'banner', { image_url: '/api/media/old', ends_at: '2026-10-01T00:00:00Z' }), mod('noimg', 'banner', { sort: 0 }),
+    mod('s1', 'banner', { sort: 3, image_url: '/api/media/x', payload: { placement: 'side-1' } }), mod('s2', 'banner', { sort: 4, image_url: '/api/media/s2', payload: { placement: 'side-2' } }), mod('s1b', 'banner', { sort: 5, payload: { placement: 'side-1' } }),
     mod('p1', 'promo', { payload: { size: 'large', category_slug: 'fiction', theme: 'coral' } }), mod('g', 'genre-switcher', { payload: { category_slugs: ['science', 'empty', 'fiction'] } })] });
 
-assert.deepEqual(home.banners.map(b => b.id), ['b0', 'b1'], 'ordered, expired banner dropped, side banners not in the hero');
-assert.equal(home.sideBanners.first.id, 's1', 'the first live side-1 banner fills side card 1');
-assert.equal(home.sideBanners.first.image, '/api/media/x');
-assert.equal(home.sideBanners.second.id, 's2');
+const at = (key) => home.sections.find((p) => p.section.key === key);
+assert.deepEqual(at('hero').banners.map(b => b.id), ['b0', 'b1'], 'ordered, expired and imageless banners dropped, side banners not in the hero');
+assert.deepEqual(at('side').banners.map(b => b.id), ['s1', 's2'], 'old side-1/side-2 banners fill the side section, imageless ones skipped');
+assert.equal(at('side').banners[0].image, '/api/media/x');
+assert.deepEqual(sectionsAt(home.sections, 'home-top-main').map(p => p.section.key), ['hero']);
+// Product pages and search/category pages get the banners placed in their sections.
+const pageMods = [mod('p0', 'banner', { sort: 1, payload: { placement: 'product' } }), mod('p1', 'banner', { sort: 2, image_url: '/api/media/p1', payload: { placement: 'product' } }),
+  mod('l1', 'banner', { sort: 3, image_url: '/api/media/l1', payload: { placement: 'listing' } })];
+const placed = bannerSections(pageMods, now);
+assert.deepEqual(sectionsAt(placed, 'product-below-details')[0].banners.map(b => b.id), ['p1'], 'a banner without an image is skipped');
+assert.deepEqual(sectionsAt(placed, 'listing-above-results')[0].banners.map(b => b.id), ['l1']);
+// Admin settings: a section's maximum caps what shows, a switched-off section disappears, a custom section can be placed anywhere.
+const many = Array.from({ length: 4 }, (_, i) => mod(`g${i}`, 'banner', { sort: i, image_url: `/api/media/g${i}`, payload: { placement: 'promo-row' } }));
+const custom = bannerSections([...many, mod('row', 'banner-section', { title: 'Promo row', sort: 50, payload: { key: 'promo-row', position: 'home-after-products', layout: 'grid', max: 3, columns: 3, enabled: 'on' } }),
+  mod('off', 'banner-section', { title: 'Hero', payload: { key: 'hero', enabled: 'off' } })], now);
+const row = sectionsAt(custom, 'home-after-products')[0];
+assert.equal(row.section.layout, 'grid'); assert.deepEqual(row.banners.map(b => b.id), ['g0', 'g1', 'g2'], 'only the section maximum shows');
+assert.equal(sectionsAt(custom, 'home-top-main').length, 0, 'a switched-off section is left out');
 assert.equal(home.promos[0].books.length, 2);
 assert.ok(home.promos[0].books.every(b => b.category_slug === 'fiction' && b.saleable));
 const rail = key => home.rails.find(r => r.key === key);
@@ -39,5 +53,5 @@ assert.deepEqual(home.categoryTiles.map(t => t.slug), ['fiction', 'science']);
 assert.deepEqual(home.authors.map(a => a.id), ['au1']);
 
 const empty = buildHome({ books: [], categories: [], modules: [], bestsellers: [], authors: [], now });
-assert.deepEqual([empty.banners, empty.promos, empty.rails, empty.genres, empty.languages, empty.categoryTiles, empty.authors].map(x => x.length), [0, 0, 0, 0, 0, 0, 0]);
+assert.deepEqual([empty.sections.flatMap(p => p.banners), empty.promos, empty.rails, empty.genres, empty.languages, empty.categoryTiles, empty.authors].map(x => x.length), [0, 0, 0, 0, 0, 0, 0]);
 console.log('Home assembly checks passed: banner order and expiry, promo books, honest bestsellers, rails, genres, languages, tiles, authors.');
