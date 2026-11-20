@@ -63,8 +63,8 @@ export function buildHome({ books, categories, modules, bestsellers, authors, no
   for (const b of books) if (b.language) counts.set(b.language, (counts.get(b.language) ?? 0) + 1);
   const languages = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .map(([name, count]) => ({ name, count }));
-  const categoryTiles = categories.filter((c) => inCategory(c.slug).length).slice(0, 12).map((c) => ({ slug: c.slug, name: c.name, colour: c.colour, count: inCategory(c.slug).length,
+  const categoryTiles = categories.filter((c) => inCategory(c.slug).length).slice(0, 24).map((c) => ({ slug: c.slug, name: c.name, colour: c.colour, count: inCategory(c.slug).length,
     image: contentUrl(c.image_url), covers: inCategory(c.slug).flatMap((b) => b.cover ? [b.cover] : []).slice(0, 3) }));
   const withBooks = new Set(books.map((b) => b.author_slug).filter(Boolean));
-  return { sections, promos, rails, genres, languages, categoryTiles, authors: authors.filter((a) => withBooks.has(a.id)).slice(0, 10) };
+  return { sections, promos, rails, genres, languages, categoryTiles, authors: authors.filter((a) => withBooks.has(a.id)).slice(0, 20) };
 }

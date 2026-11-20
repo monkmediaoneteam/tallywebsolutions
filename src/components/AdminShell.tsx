@@ -6,7 +6,7 @@
 import Link from "next/link";
 import { STORE } from "@/lib/store";
 
-export type AdminSection = "overview" | "analytics" | "orders" | "books" | "offers" | "categories" | "authors" | "collections" | "banners" | "seo" | "modules" | "reviews" | "delivery" | "storage";
+export type AdminSection = "overview" | "analytics" | "orders" | "books" | "offers" | "categories" | "authors" | "collections" | "banners" | "seo" | "modules" | "homepage" | "theme" | "reviews" | "delivery" | "storage";
 const nav: { key: AdminSection; label: string; href: string }[] = [
   { key: "overview", label: "Dashboard", href: "/admin" },
   { key: "analytics", label: "Analytics", href: "/admin/analytics" },
@@ -18,7 +18,9 @@ const nav: { key: AdminSection; label: string; href: string }[] = [
   { key: "collections", label: "Collections", href: "/admin/platform/collections" },
   { key: "banners", label: "Banners", href: "/admin/banners" },
   { key: "seo", label: "SEO", href: "/admin/seo" },
-  { key: "modules", label: "Homepage sections", href: "/admin/platform/modules" },
+  { key: "homepage", label: "Homepage sections", href: "/admin/homepage" },
+  { key: "theme", label: "Theme", href: "/admin/theme" },
+  { key: "modules", label: "Advanced content", href: "/admin/platform/modules" },
   { key: "reviews", label: "Submissions", href: "/admin/platform/reviews" },
   { key: "delivery", label: "Delivery recovery", href: "/admin/platform/delivery" },
   { key: "storage", label: "Storage", href: "/admin/storage" },
@@ -41,7 +43,7 @@ export default function AdminShell({
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
-      <aside className="border-b border-line bg-bg-2 lg:sticky lg:top-0 lg:h-screen lg:border-r lg:border-b-0">
+      <aside className="border-b border-line bg-bg-2 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:border-r lg:border-b-0">
         <div className="px-6 py-6">
           <p className="title text-[15px]">{STORE.name}</p>
           <p className="eyebrow mt-1">Admin</p>
