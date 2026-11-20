@@ -1,15 +1,16 @@
 import assert from 'node:assert/strict';
 import { chromium, expect as baseExpect } from '@playwright/test';
-const expect = baseExpect.configure({ timeout: Number(process.env.CHECK_TIMEOUT_MS) || 5000 });
 
 const base = process.env.PREVIEW_URL || 'http://localhost:3100';
 const token = process.env.ADMIN_TOKEN;
 assert.ok(['localhost', '127.0.0.1'].includes(new URL(base).hostname), 'Admin checks must target the isolated preview.');
 assert.match(token || '', /^[a-f0-9]{64}$/, 'Start the preview with ADMIN_TOKEN=<64 hex> and pass the same value here.');
+const expect = baseExpect.configure({ timeout: Number(process.env.EXPECT_TIMEOUT || 5000) });
 const browser = await chromium.launch();
 const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', e => errors.push(String(e)));
+page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
 try {
   await page.goto(`${base}/admin/login`);
   await page.getByLabel('Admin email').fill(process.env.ADMIN_EMAIL || 'admin@preview.test');
@@ -17,10 +18,12 @@ try {
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(`${base}/admin`);
   for (const [link, heading] of [['Orders', 'Orders'], ['Products', 'Products'], ['Categories', 'Categories'], ['Developers', 'Developers'],
-    ['Collections', 'Collections'], ['Banners', 'Banners'], ['Homepage sections', 'Homepage sections'], ['Submissions', 'Submissions'], ['Delivery recovery', 'Delivery recovery']]) {
+    ['Collections', 'Collections'], ['Banners', 'Banners'], ['Homepage sections', 'Homepage sections'], ['Submissions', 'Submissions'], ['Delivery recovery', 'Delivery recovery'], ['Storage', 'Storage']]) {
     await page.getByRole('navigation').getByRole('link', { name: link, exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
   }
+  // Storage explains how to connect file storage when none is set up (the preview has none).
+  await expect(page.getByText('File storage is not connected')).toBeVisible();
   // Create a draft product: it opens straight in its editor.
   await page.goto(`${base}/admin/products`);
   await page.getByText('Add product').click();
@@ -88,6 +91,7 @@ try {
   await page.getByRole('dialog').getByRole('button', { name: 'Remove from store' }).click();
   await expect(page.getByText(/Removed 2 products from the store/)).toBeVisible();
   expect((await page.request.get(store)).status()).toBe(404);
+  await page.waitForLoadState('networkidle');
   await page.getByLabel('Select all products on this page').check();
   await page.getByRole('button', { name: 'Show in store' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Show in store' }).click();
@@ -396,6 +400,49 @@ try {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'no sideways scroll on a phone');
   await page.setViewportSize({ width: 1280, height: 800 });
 
+
+  // Analytics: real charts from seeded orders, range presets, comparison toggle, KPI numbers, CSV export.
+  await page.goto(`${base}/admin/analytics`, { waitUntil: 'networkidle' });
+  await expect(page.getByRole('heading', { level: 1, name: 'Analytics' })).toBeVisible();
+  const kpi = (label) => page.locator(`[data-kpi="${label}"] [data-value]`);
+  await expect(kpi('Revenue')).toHaveText(/^₹[0-9,]+/);
+  await expect(kpi('Orders')).toHaveText(/^[1-9][0-9,]*$/);
+  const charts = page.locator('canvas[role="img"]');
+  await expect(charts.first()).toBeVisible();
+  await page.waitForFunction(() => [...document.querySelectorAll('canvas[role="img"]')].length >= 5 && [...document.querySelectorAll('canvas[role="img"]')].every((c) => c.width > 0 && c.height > 0));
+  for (const label of ['Revenue and orders over time', 'Top products by revenue', 'Revenue by category', 'Payment outcomes', 'New and returning customers per week'])
+    await expect(page.locator(`canvas[aria-label="${label}"]`)).toBeVisible();
+  await expect(page.locator('.sr-only table caption', { hasText: 'Revenue and orders over time' })).toHaveCount(1);
+  await expect(page.locator('[data-kpi="Revenue"] .sr-only')).toContainText('previous period');
+  const revenue30 = await kpi('Revenue').innerText();
+  await page.getByRole('link', { name: 'Last 7 days', exact: true }).click();
+  await expect(page).toHaveURL(/range=7d/);
+  await expect(page.locator('canvas[aria-label="Revenue and orders over time"]')).toBeVisible();
+  await page.getByRole('link', { name: 'Last 90 days', exact: true }).click();
+  await expect(page.getByText('Weekly totals, Monday to Sunday.')).toBeVisible();
+  await page.getByRole('link', { name: 'Last 30 days', exact: true }).click();
+  await expect(page).toHaveURL(/range=30d/);
+  await expect(page.getByText(/^Last 30 days,/)).toBeVisible();
+  expect(await kpi('Revenue').innerText()).toBe(revenue30);
+  await page.getByRole('link', { name: /Compare to previous period/ }).click();
+  await expect(page).toHaveURL(/compare=0/);
+  await expect(page.locator('[data-kpi="Revenue"] .sr-only')).toHaveCount(0);
+  await page.getByRole('link', { name: /Compare to previous period/ }).click();
+  await expect(page.locator('[data-kpi="Revenue"] .sr-only')).toHaveCount(1);
+  const rangeForm = page.locator('form[aria-label="Custom date range"]');
+  const stampDay = (back) => new Date(Date.now() + 330 * 60000 - back * 86400000).toISOString().slice(0, 10);
+  await rangeForm.getByLabel("From").fill(stampDay(10)); await rangeForm.getByLabel("To").fill(stampDay(0));
+  await rangeForm.getByRole("button", { name: "Apply custom range" }).click();
+  await expect(page).toHaveURL(/from=.*&to=/);
+  await expect(page.locator('canvas[aria-label="Revenue and orders over time"]')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Export CSV' })).toHaveAttribute('href', /\/api\/admin\/export\?from=\d{4}-\d{2}-\d{2}&to=/);
+  const csv = await page.request.get(new URL(await page.getByRole('link', { name: 'Export CSV' }).getAttribute('href'), base).href);
+  expect(csv.status()).toBe(200);
+  expect((await csv.text()).split('\r\n')[0]).toContain('order_id,name,email');
+  // A range with no orders still shows the controls and an empty state.
+  await page.goto(`${base}/admin/analytics?from=2020-01-01&to=2020-01-31`, { waitUntil: 'networkidle' });
+  await expect(page.getByText('No orders in this range').first()).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Last 7 days', exact: true })).toBeVisible();
 
   assert.deepEqual(errors, []);
 } finally { await browser.close(); }
