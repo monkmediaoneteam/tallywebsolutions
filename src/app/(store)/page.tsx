@@ -3,7 +3,7 @@ import { flag } from "@/lib/env";
 import { bestsellerSlugs, getCategories, getPublishedAuthors, getStoreBooks } from "@/lib/store-data";
 import { buildHome, sectionsAt } from "@/lib/home";
 import type { Position } from "@/lib/banner-sections";
-import { siteUrl } from "@/lib/store";
+import { seoMetadata, SeoHead } from "@/lib/seo-meta";
 import HeroCampaign from "@/components/home/HeroCampaign";
 import CategoryTiles from "@/components/home/CategoryTiles";
 import Featured from "@/components/home/Featured";
@@ -17,7 +17,7 @@ import ShopStrip from "@/components/home/ShopStrip";
 import { SectionList } from "@/components/home/BannerSectionView";
 
 export const dynamic = "force-dynamic";
-export const metadata = { alternates: { canonical: siteUrl() } };
+export async function generateMetadata() { return seoMetadata("/"); }
 
 export default async function Home() {
   const now = new Date();
@@ -31,6 +31,7 @@ export default async function Home() {
   const main = at("home-top-main"), side = at("home-top-side");
   // Banner sections are set in Admin > Banners > Sections. Empty top sections fall back to the store's own hero and product cards.
   return <>
+    <SeoHead path="/" site />
     {(main.length > 0 || side.length > 0) && <div className={`wrap home-top${side.length ? "" : " home-top-full"}`}>
       <div className="home-main"><SectionList list={main} eager fallback={<HeroCampaign banners={[]} covers={covers} />} /></div>
       {side.length > 0 && <div className="home-side"><SectionList list={side} fallback={<HomeSide books={books} />} /></div>}

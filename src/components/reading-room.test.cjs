@@ -323,6 +323,7 @@ async function checkRetries() {
 async function checkCatalogue() {
   const listing = load("lib/listing.ts");
   const Search = load("app/(store)/search/page.tsx", {
+    "@/lib/seo-meta": { seoMetadata: async () => ({}), SeoHead: () => null }, // Admin > SEO overrides need a database; not under test here
     "@/lib/store-data": { getStoreBooks: async () => [publicBook({ ...record, file_format: "PDF", language: "English" }), publicBook({ ...record, slug: "second-book", title: "Second title", isbn: "9781111111111", file_format: "EPUB" })],
       getCategories: async () => [], bestsellerSlugs: async () => [] },
     "@/lib/listing": listing,
@@ -400,7 +401,8 @@ async function checkHomepage() {
   }
   assert.doesNotMatch(sections, /akshara|अ/);
   const sitemap = load("app/sitemap.ts", { "@/lib/db": { getBooks: async () => [record, { ...record, slug: "unapproved", third_party: true, release_approved: false }] },
-    "@/components/book-data": load("components/book-data.ts"), "@/lib/store-data": { getCategories: async () => [{ slug: "science" }] } }).default;
+    "@/components/book-data": load("components/book-data.ts"), "@/lib/store-data": { getCategories: async () => [{ slug: "science", name: "Science" }] },
+    "@/lib/seo-store": { getSeoRows: async () => [], indexRows: () => ({ site: {}, overrides: new Map() }) } }).default;
   const urls = (await sitemap()).map(item => item.url).join("\n");
   assert.match(urls, /products\/real-book/);
   assert.doesNotMatch(urls, /products\/unapproved/);

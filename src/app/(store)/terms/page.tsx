@@ -1,10 +1,13 @@
 import { Legal, ENTITY } from "@/components/legal";
 import { STORE } from "@/lib/store";
-export const metadata = { title: "Terms of Use" };
+import { seoMetadata, SeoHead } from "@/lib/seo-meta";
+export const dynamic = "force-dynamic";
+export async function generateMetadata() { return seoMetadata("/terms"); }
 
 export default function Page() {
   return (
     <Legal title="Terms of Use">
+      <SeoHead path="/terms" />
       <p>These terms govern the purchase of digital add-ons through {STORE.name}.</p>
       <p><strong>Your licence.</strong> Buying an add-on grants you a personal,
       non-transferable licence to use it in your own TallyPrime. You may keep copies for your own use.

@@ -1,7 +1,9 @@
 import SignupForm from './SignupForm';
 import { env } from '@/lib/env';
 import { countryOptions } from '@/lib/signup';
-export const metadata = { title: 'Create account', robots: { index: false, follow: false } };
+import { seoMetadata } from "@/lib/seo-meta";
+export const dynamic = "force-dynamic";
+export async function generateMetadata() { return seoMetadata("/signup"); }
 export default async function Signup({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const params = await searchParams;
   const next = params.next?.startsWith('/') && !params.next.startsWith('//') && !params.next.includes('\\') ? params.next : '/library';

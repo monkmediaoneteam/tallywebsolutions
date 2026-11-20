@@ -5,9 +5,10 @@ import { sql } from "@/lib/db";
 import { getAuthorSubmissions } from "@/lib/submissions";
 import ActionForm from "@/components/ActionForm";
 import UploadForm from "./UploadForm";
+import { seoMetadata } from "@/lib/seo-meta";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Developer workspace", robots: { index: false, follow: false } };
+export async function generateMetadata() { return seoMetadata("/author"); }
 export default async function AuthorPage() {
   const reader = await getReader();
   if (!reader) return <section className="wrap py-12"><h1 className="text-3xl font-medium">Developer workspace</h1><p className="my-5">Sign in with a verified email to register as a developer.</p><Link className="btn btn-primary" href="/login?next=/author">Sign in</Link></section>;
