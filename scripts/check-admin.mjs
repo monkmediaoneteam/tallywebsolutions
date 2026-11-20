@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { chromium, expect } from '@playwright/test';
+import { chromium, expect as baseExpect } from '@playwright/test';
+const expect = baseExpect.configure({ timeout: 30000 }); // a cold dev server compiles each page on first visit
 
 const base = process.env.PREVIEW_URL || 'http://localhost:3100';
 const token = process.env.ADMIN_TOKEN;
@@ -7,6 +8,8 @@ assert.ok(['localhost', '127.0.0.1'].includes(new URL(base).hostname), 'Admin ch
 assert.match(token || '', /^[a-f0-9]{64}$/, 'Start the preview with ADMIN_TOKEN=<64 hex> and pass the same value here.');
 const browser = await chromium.launch();
 const page = await browser.newPage();
+page.setDefaultTimeout(60000);
+page.on('dialog', (d) => d.accept().catch(() => {})); // every confirm in these checks is an accept
 const errors = [];
 page.on('pageerror', e => errors.push(String(e)));
 try {
@@ -16,7 +19,7 @@ try {
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(`${base}/admin`);
   for (const [link, heading] of [['Orders', 'Orders'], ['Products', 'Products'], ['Categories', 'Categories'], ['Developers', 'Developers'],
-    ['Collections', 'Collections'], ['Banners', 'Banners'], ['Homepage sections', 'Homepage sections'], ['Submissions', 'Submissions'], ['Delivery recovery', 'Delivery recovery']]) {
+    ['Collections', 'Collections'], ['Banners', 'Banners'], ['Homepage sections', 'Homepage sections'], ['Theme', 'Theme'], ['Advanced content', 'Advanced content'], ['Submissions', 'Submissions'], ['Delivery recovery', 'Delivery recovery']]) {
     await page.getByRole('navigation').getByRole('link', { name: link, exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
   }
@@ -86,7 +89,8 @@ try {
   await page.getByRole('dialog').getByRole('button', { name: 'Remove from store' }).click();
   await expect(page.getByText(/Removed 2 products from the store/)).toBeVisible();
   expect((await page.request.get(store)).status()).toBe(404);
-  await page.getByLabel('Select all products on this page').check();
+  await page.waitForLoadState('networkidle');
+  await expect(async () => { await page.getByLabel('Select all products on this page').click(); await expect(page.getByText(/\d+ selected/)).toBeVisible({ timeout: 3000 }); }).toPass({ timeout: 40000 });
   await page.getByRole('button', { name: 'Show in store' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Show in store' }).click();
   await expect(page.getByText(/Restored \d+ products? to the store/)).toBeVisible();
@@ -157,12 +161,10 @@ try {
   await expect(page.locator('img[alt="Hero renamed"]')).toHaveCount(0);
   // Delete one from the table (asks first), and another from its own page.
   await page.goto(`${base}/admin/banners`, { waitUntil: 'networkidle' });
-  page.once('dialog', (d) => d.accept());
   await page.getByRole('button', { name: 'Delete Hero renamed' }).click();
   await saved();
   await expect(bannerRow('Hero renamed')).toHaveCount(0);
   await page.getByRole('link', { name: 'Edit Side check' }).last().click();
-  page.once('dialog', (d) => d.accept());
   await page.getByRole('button', { name: 'Delete banner' }).click();
   await expect(page).toHaveURL(/\/admin\/banners\?saved=1/);
   await expect(bannerRow('Side check')).toHaveCount(0);
@@ -234,11 +236,9 @@ try {
   await expect(page.getByText(/reserved/)).toBeVisible();
   // Reset the hero back to its defaults, and delete the custom section (its banner is kept and flagged).
   await page.goto(`${base}/admin/banners/sections/hero`, { waitUntil: 'networkidle' });
-  page.once('dialog', (d) => d.accept());
   await page.getByRole('button', { name: 'Reset to default' }).click();
   await expect(page).toHaveURL(/\/admin\/banners\/sections\?saved=1/);
   await expect(page.locator('tr', { hasText: 'Hero' }).first().getByText('1920 × 600 px')).toBeVisible();
-  page.once('dialog', (d) => d.accept());
   await page.getByRole('button', { name: 'Delete Festival row' }).click();
   await saved();
   await expect(page.locator('tr', { hasText: 'Festival row' })).toHaveCount(0);
@@ -274,6 +274,138 @@ try {
   await page.getByRole('button', { name: 'Add category' }).click();
   await expect(page.getByText(/already exists/)).toBeVisible();
 
+  // ---- Homepage sections: add, edit, reorder, hide, duplicate, delete, each reflected on the storefront.
+  page.setDefaultTimeout(60000);
+  const slow = (target) => expect(target, { timeout: 45000 });
+  const order = async () => { await page.goto(base, { waitUntil: 'networkidle' }); return page.locator('main > [data-section]').evaluateAll((els) => els.map((e) => `${e.getAttribute('data-section')}|${(e.textContent || '').includes('Check heading') ? 'mine' : ''}`)); };
+  const addSection = async (name) => {
+    await page.goto(`${base}/admin/homepage`, { waitUntil: 'networkidle' });
+    await page.locator('summary', { hasText: 'Add section' }).click();
+    await page.getByRole('button', { name: new RegExp(`^${name}`) }).click();
+    await expect(page).toHaveURL(/\/admin\/homepage\/[a-z0-9-]+$/);
+    await page.waitForLoadState('networkidle');
+  };
+  const saveSection = async () => { await page.getByRole('button', { name: 'Save', exact: true }).click(); await slow(page).toHaveURL(/\?saved=1/); await slow(page.getByText('Saved. The storefront is updated.')).toBeVisible(); };
+  const defaultOrder = (await order()).map((s) => s.split('|')[0]);
+  assert.deepEqual(defaultOrder.filter((t) => t !== 'banner-slot' && t !== 'top'), ['quick-links', 'categories', 'rails', 'look-inside', 'languages', 'developers', 'publish', 'faq'].filter((t) => defaultOrder.includes(t)), 'default order is the storefront as it was');
+  await addSection('Rich text');
+  await page.locator('input[name="s.heading"]').fill('Check heading');
+  await page.locator('input[name="s.text_color"]').fill('#aa0000');
+  await page.locator('input[name="s.background"]').fill('#eeeeee');
+  await page.getByLabel('Custom spacing').check();
+  await page.locator('input[name="s.pad_top"]').fill('80');
+  await page.locator('input[name="s.pad_bottom"]').fill('24');
+  await page.getByLabel('Show divider').check();
+  await saveSection();
+  const mine = page.locator('[data-section="rich-text"]', { hasText: 'Check heading' });
+  await page.goto(base, { waitUntil: 'networkidle' });
+  await expect(mine).toHaveCount(1);
+  const css = await mine.evaluate((e) => { const s = getComputedStyle(e); return { pt: s.paddingTop, pb: s.paddingBottom, bg: s.backgroundColor, color: s.color, border: s.borderBottomWidth, style: e.getAttribute('style') }; });
+  assert.equal(css.pt, '80px'); assert.equal(css.pb, '24px'); assert.equal(css.bg, 'rgb(238, 238, 238)'); assert.equal(css.color, 'rgb(170, 0, 0)'); assert.equal(css.border, '1px');
+  assert.match(css.style, /--hs-pt:\s*80px/);
+
+  // Image with text overlay: height, overlay, position and padding settings reach the page.
+  await addSection('Image with text overlay');
+  await page.locator('input[name="s.heading"]').fill('Overlay check');
+  await page.locator('select[name="s.height_desktop"]').selectOption('700px');
+  await page.locator('input[name="s.overlay_opacity"]').fill('60');
+  await page.locator('input[name="s.overlay_color"]').fill('#112233');
+  await page.getByRole('radio', { name: 'Bottom right' }).last().click();
+  await page.getByLabel('Custom spacing').check();
+  await page.locator('input[name="s.pad_top"]').fill('0');
+  await saveSection();
+  await page.goto(base, { waitUntil: 'networkidle' });
+  const io = page.locator('.io', { hasText: 'Overlay check' });
+  await expect(io).toHaveCount(1);
+  const ioStyle = await io.getAttribute('style');
+  assert.match(ioStyle, /--io-h:\s*700px/); assert.match(ioStyle, /--io-opacity:\s*0\.6/); assert.match(ioStyle, /--io-overlay:\s*#112233/);
+  assert.match(ioStyle, /--io-ai:\s*flex-end/); assert.match(ioStyle, /--io-jc:\s*flex-end/);
+  assert.equal(await io.locator('.io-media').evaluate((e) => getComputedStyle(e).height), '700px');
+  assert.equal(await page.locator('[data-section="image-overlay"]').evaluate((e) => getComputedStyle(e).paddingTop), '0px');
+
+  // Reorder: moving up twice puts it two places earlier.
+  const before = await order();
+  const at = (list) => list.findIndex((s) => s.endsWith('|mine'));
+  await page.goto(`${base}/admin/homepage`, { waitUntil: 'networkidle' });
+  for (let i = 0; i < 2; i++) { await page.getByRole('button', { name: 'Move Check heading up' }).click(); await slow(page).toHaveURL(/saved=1/); await page.waitForLoadState('networkidle'); }
+  const after = await order();
+  assert.equal(at(after), at(before) - 2, 'moved two places up on the storefront');
+  // Hide: gone from the storefront, still in the list; show again.
+  await page.goto(`${base}/admin/homepage`, { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: 'Hide Check heading' }).click();
+  await slow(page.getByRole('button', { name: 'Show Check heading' })).toBeVisible();
+  assert.equal(at(await order()), -1, 'a hidden section is absent from the storefront');
+  await page.goto(`${base}/admin/homepage`, { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: 'Show Check heading' }).click();
+  await slow(page.getByRole('button', { name: 'Hide Check heading' })).toBeVisible();
+  assert.equal(at(await order()), at(after));
+  // Duplicate: two on the page.
+  await page.goto(`${base}/admin/homepage`, { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: 'Duplicate Check heading' }).click();
+  await expect(page).toHaveURL(/\/admin\/homepage\/rich-text-/);
+  assert.equal((await order()).filter((s) => s.endsWith('|mine')).length, 2);
+  // Hiding a built-in section hides it on the storefront.
+  await page.goto(`${base}/admin/homepage`, { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: 'Hide Good to know' }).click();
+  await slow(page.getByRole('button', { name: 'Show Good to know' })).toBeVisible();
+  await page.goto(base, { waitUntil: 'networkidle' });
+  await expect(page.locator('#faq')).toHaveCount(0);
+  await page.goto(`${base}/admin/homepage`, { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: 'Show Good to know' }).click();
+  await slow(page.getByRole('button', { name: 'Hide Good to know' })).toBeVisible();
+  // A rejected save keeps what was typed and says why.
+  await page.goto(`${base}/admin/homepage`, { waitUntil: 'networkidle' });
+  await page.getByRole('link', { name: 'Edit Check heading' }).first().click();
+  await page.waitForLoadState('networkidle');
+  await page.locator('input[name="s.heading"]').fill('Kept on error');
+  await page.locator('input[name="s.text_color"]').fill('red');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await slow(page.locator('p[role="alert"]')).toContainText(/must be a colour/);
+  await expect(page.locator('input[name="s.heading"]')).toHaveValue('Kept on error');
+  // The FAQ questions are editable blocks.
+  await page.goto(`${base}/admin/homepage/faq`, { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: 'Remove question 1' }).click();
+  await page.getByRole('button', { name: /^Add question/ }).click();
+  await page.locator('[data-block]').last().locator('input').first().fill('Block question?');
+  await saveSection();
+  await page.goto(base, { waitUntil: 'networkidle' });
+  await expect(page.locator('#faq summary')).toHaveCount(6);
+  await expect(page.locator('#faq summary', { hasText: 'Block question?' })).toHaveCount(1);
+  await expect(page.locator('#faq summary', { hasText: 'How do I get my add-on?' })).toHaveCount(0);
+  // Delete the test sections.
+  await page.goto(`${base}/admin/homepage`, { waitUntil: 'networkidle' });
+  for (const name of ['Check heading', 'Check heading', 'Overlay check']) {
+    await page.getByRole('button', { name: `Delete ${name}` }).first().click();
+    await slow(page.getByText('Saved. The storefront is updated.')).toBeVisible();
+    await page.waitForLoadState('networkidle');
+  }
+  await expect(page.locator('tr', { hasText: 'Check heading' })).toHaveCount(0);
+  // Reset the layout.
+  await page.getByRole('button', { name: /Reset to default layout/ }).click();
+  await slow(page.getByText('Saved. The storefront is updated.')).toBeVisible();
+  await page.goto(base, { waitUntil: 'networkidle' });
+  await expect(page.locator('#faq summary', { hasText: 'How do I get my add-on?' })).toHaveCount(1);
+
+  // ---- Theme: colours reach the storefront; low contrast warns; reset restores.
+  await page.goto(`${base}/admin/theme`, { waitUntil: 'networkidle' });
+  await page.locator('#t-brand').fill('#aa0000');
+  await page.locator('#t-link').fill('#0000cc');
+  await page.getByLabel('Page width').selectOption('1280');
+  await page.getByLabel('Button style').selectOption('square');
+  await page.getByRole('button', { name: 'Save theme' }).click();
+  await slow(page.getByText('Saved. The storefront is updated.')).toBeVisible();
+  await page.goto(base, { waitUntil: 'networkidle' });
+  const themed = await page.evaluate(() => ({ brand: getComputedStyle(document.documentElement).getPropertyValue('--brand').trim(), link: getComputedStyle(document.querySelector('.section-head .link-line')).color,
+    wrap: Math.round(document.querySelector('.carousel').closest('.wrap').getBoundingClientRect().width), btn: getComputedStyle(document.querySelector('.btn')).borderTopLeftRadius }));
+  assert.equal(themed.brand, '#aa0000'); assert.equal(themed.link, 'rgb(0, 0, 204)'); assert.ok(themed.wrap <= 1280); assert.equal(themed.btn, '2px');
+  await page.goto(`${base}/admin/theme`, { waitUntil: 'networkidle' });
+  await page.locator('#t-ink').fill('#dddddd');
+  await expect(page.getByText('Low contrast.')).toBeVisible();
+  await page.getByRole('button', { name: 'Reset to defaults' }).click();
+  await slow(page.getByText('Saved. The storefront is updated.')).toBeVisible();
+  await page.goto(base, { waitUntil: 'networkidle' });
+  assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--brand').trim()), '#2e2e7e');
+
   assert.deepEqual(errors, []);
 } finally { await browser.close(); }
-console.log('Admin browser check passed: sign-in, every section, draft product, details reflected in store, save errors shown, visibility and bulk actions reflected in store, banner table with edit and delete, banner and section pages, size presets and fit, new and deleted sections, image required, ended band hidden, banner schedule kept, category address made from the name.');
+console.log('Admin browser check passed: sign-in, every section, draft product, details reflected in store, save errors shown, visibility and bulk actions reflected in store, banner table with edit and delete, banner and section pages, size presets and fit, new and deleted sections, image required, ended band hidden, banner schedule kept, category address made from the name, homepage sections (add, edit, reorder, hide, duplicate, blocks, delete, reset) and theme reflected on the storefront.');

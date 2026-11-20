@@ -8,7 +8,7 @@ const { db, directory } = await createIsolatedDatabase({ seed: true });
 await db.close();
 const adminToken = process.env.ADMIN_TOKEN || randomBytes(32).toString('hex');
 if (!/^[a-f0-9]{64}$/.test(adminToken)) throw new Error('ADMIN_TOKEN for the preview must be 64 lowercase hex characters.');
-const preview = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '--port', String(port)], {
+const preview = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '--port', String(port), ...(process.env.PREVIEW_WEBPACK ? ['--webpack'] : [])], {
   stdio: 'inherit', env: { ...process.env,
     PGLITE_DATABASE_DIR: directory, DATABASE_URL: '', AUTH_SECRET: randomBytes(32).toString('hex'),
     NEXT_PUBLIC_SITE_URL: `http://localhost:${port}`, NEXT_PUBLIC_STORE_NAME: 'Tallywebsolutions',

@@ -9,6 +9,8 @@ import { publicModules, contentUrl } from "@/components/content-data";
 import { buildNav } from "@/lib/navigation";
 import { getReader } from "@/lib/reader-auth";
 import WishlistProvider from "@/components/WishlistProvider";
+import { getSiteSettings } from "@/lib/site-settings";
+import { themeCss } from "@/lib/theme";
 import Reveal from "@/components/motion/Reveal";
 
 // A database error must never take down every page: the frame falls back to an empty menu.
@@ -21,8 +23,10 @@ async function frameData() {
 }
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
-  const [{ nav, categories, previews, announcement }, reader] = await Promise.all([frameData(), getReader().catch(() => null)]);
+  const [{ nav, categories, previews, announcement }, reader, saved] = await Promise.all([frameData(), getReader().catch(() => null), getSiteSettings()]);
+  const theme = themeCss(saved.theme);
   return <CartProvider><WishlistProvider signedIn={!!reader}>
+    {theme && <style id="theme-settings" dangerouslySetInnerHTML={{ __html: theme }} />}
     <a href="#main" className="skip-link" tabIndex={0}>Skip to content</a>
     <StoreHeader name={STORE.name} nav={nav} announcement={announcement} previews={previews} />
     <main id="main" tabIndex={-1}>{children}</main>
