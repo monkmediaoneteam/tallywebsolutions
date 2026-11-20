@@ -36,6 +36,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return seoMetadata(productPath(book.slug), { ...productDefaults(book), canonical: `${siteUrl()}/products/${encodeURIComponent(book.slug)}` });
 }
 
+// "2026-12-02" -> "2 Dec 2026". A year typed with two digits ("0026") is read as 20xx so old entries still look right.
+function releasedOn(value: string | null) {
+  const m = value?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return value;
+  const year = Number(m[1]) < 100 ? 2000 + Number(m[1]) : Number(m[1]);
+  return new Date(Date.UTC(year, Number(m[2]) - 1, Number(m[3]))).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+}
+
 export default async function BookPage({ params }: { params: Promise<{ slug: string }> }) {
   const now = new Date();
   const [book, records, content, categories] = await Promise.all([getBook((await params).slug), getBooks(), getPublicContent(), getCategories()]);
@@ -53,7 +61,7 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
   const byAuthor = book.author_slug ? others.filter((o) => o.author_slug === book.author_slug).slice(0, 12) : [];
   const similar = others.filter((o) => o.category_slug && o.category_slug === book.category_slug && !byAuthor.includes(o)).slice(0, 12);
   const details: [typeof BookOpen, string, string | number | null | undefined][] = [
-    [FileText, "File type", book.file_format], [Layers, "File size", book.file_size], [BadgeCheck, "Released", view.release_date],
+    [FileText, "File type", book.file_format], [Layers, "File size", book.file_size], [BadgeCheck, "Released", releasedOn(view.release_date)],
   ];
   const facts = Object.entries(book.facts || {}).filter(([k]) => !k.startsWith("_"));
   const paragraphs = (book.long_description || "").split(/\n\s*\n/).filter(Boolean);
