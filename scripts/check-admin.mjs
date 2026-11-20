@@ -411,6 +411,7 @@ try {
   assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--brand').trim()), '#2e2e7e');
 
   // SEO manager: filter the page list, edit, preview, save, see it on the storefront and in the sitemap, then reset.
+  await page.goto(`${base}/admin`, { waitUntil: 'networkidle' });
   await page.getByRole('navigation').getByRole('link', { name: 'SEO', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'SEO' })).toBeVisible();
   await page.waitForLoadState('networkidle');
@@ -574,6 +575,7 @@ try {
   await expect(page.getByText('No orders in this range').first()).toBeVisible();
   await expect(page.getByRole('link', { name: 'Last 7 days', exact: true })).toBeVisible();
 
-  assert.deepEqual(errors, []);
+  // The deliberate refused saves (bad colour, bad JSON-LD, ...) answer 400 and the browser logs that; anything else is a real error.
+  assert.deepEqual(errors.filter((e) => !/^console: Failed to load resource: the server responded with a status of 400/.test(e)), []);
 } finally { await browser.close(); }
 console.log('Admin browser check passed: sign-in, every section, draft product, details reflected in store, save errors shown, visibility and bulk actions reflected in store, banner table with edit and delete, banner and section pages, size presets and fit, new and deleted sections, image required, ended band hidden, banner schedule kept, category address made from the name, SEO manager (filter, live counters and previews, save, storefront tags, sitemap, site defaults, reset), homepage sections (add, edit, reorder, hide, duplicate, blocks, delete, reset) and theme reflected on the storefront.');

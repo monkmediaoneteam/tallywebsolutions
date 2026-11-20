@@ -43,7 +43,7 @@ export default function AdminShell({
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
-      <aside className="border-b border-line bg-bg-2 lg:sticky lg:top-0 lg:h-screen lg:border-r lg:border-b-0">
+      <aside className="border-b border-line bg-bg-2 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:border-r lg:border-b-0">
         <div className="px-6 py-6">
           <p className="title text-[15px]">{STORE.name}</p>
           <p className="eyebrow mt-1">Admin</p>
