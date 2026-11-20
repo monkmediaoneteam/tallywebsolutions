@@ -9,6 +9,7 @@ import { ContentError, safeUrl, textField } from '@/lib/content';
 import { parseSale } from '@/lib/admin-catalogue';
 import { putOnSale, setRegularPrice, SaleError } from '@/lib/admin-sale';
 import { slugify } from '@/lib/slug';
+import { booksDocs, pathsBefore, releaseQuietly } from '@/lib/storage-admin';
 
 export const runtime = "nodejs";
 
@@ -25,6 +26,7 @@ async function bulk(form: FormData) {
   if (slugs.length > BULK_LIMIT || slugs.some(slug => !SLUG.test(slug))) throw new PublishingError('Invalid product selection.');
   if (op === 'delete') {
     if (form.get('confirmed') !== 'on') throw new PublishingError('Confirm permanent deletion.');
+    const before = await pathsBefore(booksDocs(slugs));
     const removed = await sql`with removed as (
       delete from books b where b.slug = any(${slugs}::text[]) and not coalesce(b.third_party,false)
         and not exists (select 1 from orders o where o.items @> jsonb_build_array(jsonb_build_object('slug',b.slug)))
@@ -34,6 +36,7 @@ async function bulk(form: FormData) {
     ), audit as (insert into events(order_id,type,payload)
       select null,'admin.book.deleted',jsonb_build_object('slug',slug,'bulk',true) from removed)
     select slug from removed`;
+    if (removed.length) await releaseQuietly(before);
     const kept = slugs.length - removed.length;
     return `Deleted ${removed.length} of ${slugs.length} products.` + (kept ? ` ${kept} kept: products with orders, wishlists or developer submissions cannot be deleted; remove them from the store instead.` : '');
   }
@@ -96,6 +99,7 @@ export async function POST(req: Request) {
     if (!['save', 'release', 'archive', 'restore', 'create', 'pricing', 'put-on-sale', 'price', 'hide', 'show', 'delete'].includes(String(action)) || [...form.keys()].some(key => !allowed.includes(key) || form.getAll(key).length !== 1)) throw new PublishingError('Invalid product fields.');
     if (action === 'delete') {
       if (form.get('confirmed') !== 'on') throw new PublishingError('Confirm permanent deletion.');
+      const before = await pathsBefore(booksDocs([slug]));
       const rows = await sql`with removed as (
         delete from books b where b.slug=${slug} and not coalesce(b.third_party,false)
           and not exists (select 1 from orders o where o.items @> jsonb_build_array(jsonb_build_object('slug',b.slug)))
@@ -105,6 +109,7 @@ export async function POST(req: Request) {
       ), audit as (insert into events(order_id,type,payload)
         select null,'admin.book.deleted',jsonb_build_object('slug',slug) from removed)
       select slug from removed`;
+      if (rows.length) await releaseQuietly(before);
       if (!rows.length) throw new PublishingError('Cannot delete this product: it may have orders, saved wishlists, or be a reviewed submission. Remove it from the store instead.', 409);
     } else if (action === 'hide' || action === 'show') {
       const rows = await sql`with changed as (

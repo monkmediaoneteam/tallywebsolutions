@@ -1,10 +1,12 @@
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { createIsolatedDatabase } from './isolated-db.mjs';
+import { seedAnalyticsDemo } from './analytics-fixtures.mjs';
 
 const port = Number(process.argv[2] || 3100);
 if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('Invalid preview port.');
 const { db, directory } = await createIsolatedDatabase({ seed: true });
+await seedAnalyticsDemo(db);
 await db.close();
 const adminToken = process.env.ADMIN_TOKEN || randomBytes(32).toString('hex');
 if (!/^[a-f0-9]{64}$/.test(adminToken)) throw new Error('ADMIN_TOKEN for the preview must be 64 lowercase hex characters.');

@@ -2,8 +2,9 @@ import { redirect } from 'next/navigation';
 import { getReader } from '@/lib/reader-auth';
 import { sql, type Order } from '@/lib/db';
 import { rupees } from '@/lib/money';
+import { seoMetadata } from "@/lib/seo-meta";
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Your library', robots: { index: false, follow: false } };
+export async function generateMetadata() { return seoMetadata("/library"); }
 export default async function Library() {
   const reader = await getReader();
   if (!reader) redirect('/login?next=/library');

@@ -5,6 +5,7 @@ import { isAdmin } from "@/lib/admin-auth";
 import { checkOrigin } from "@/lib/reader-auth";
 import { PublishingError, readLimitedForm } from "@/lib/submissions";
 import { parseCategory } from "@/lib/admin-catalogue";
+import { pathsBefore, releaseQuietly } from "@/lib/storage-admin";
 
 export const runtime = "nodejs";
 export async function POST(req: Request) {
@@ -16,12 +17,14 @@ export async function POST(req: Request) {
     // "Add category" never overwrites an existing one with the same web address.
     if (form.get("mode") === "create" && (await sql`select 1 from categories where slug=${c.slug}`).length) throw new PublishingError("A category with that web address already exists. Edit it below, or choose another address.", 409);
     if (c.parent_slug && !(await sql`select 1 from categories where slug=${c.parent_slug}`).length) throw new PublishingError("Choose an existing parent category.");
+    const before = await pathsBefore(sql`select to_jsonb(t)::text as doc from categories t where slug=${c.slug}`);
     await sql`with saved as (
       insert into categories(slug,name,parent_slug,image_url,colour,sort,status) values(${c.slug},${c.name},${c.parent_slug},${c.image_url},${c.colour},${c.sort},${c.status})
       on conflict (slug) do update set name=excluded.name,parent_slug=excluded.parent_slug,image_url=excluded.image_url,colour=excluded.colour,sort=excluded.sort,status=excluded.status,updated_at=now()
       returning slug
     ), audit as (insert into events(order_id,type,payload) select null,'admin.category.saved',jsonb_build_object('slug',slug) from saved)
     select slug from saved`;
+    await releaseQuietly(before);
     revalidatePath("/"); revalidatePath("/admin/categories");
     return NextResponse.redirect(new URL("/admin/categories?saved=1", req.url), 303);
   } catch (error) {

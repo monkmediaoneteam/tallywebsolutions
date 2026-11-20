@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { put } from "@vercel/blob/client";
 import { ImageUp, RefreshCw, X } from "lucide-react";
 
@@ -9,13 +9,14 @@ const TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 // An image slot inside an admin form: preview, upload (straight to private storage, checked by the server) or
 // replace, and remove. The chosen image's address goes into a normal form field, so it is saved with the form.
-export default function ImageField({ name, label, value = "", hint, ratio = "16 / 7", expect }: { name: string; label: string; value?: string; hint?: string; ratio?: string; expect?: { width: number; height: number } }) {
+export default function ImageField({ name, label, value = "", hint, ratio = "16 / 7", expect, onChange }: { name: string; label: string; value?: string; hint?: string; ratio?: string; expect?: { width: number; height: number }; onChange?: (url: string) => void }) {
   const picker = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState(value);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const changed = url !== value;
+  useEffect(() => { onChange?.(url); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
   const [dims, setDims] = useState<{ width: number; height: number; url: string } | null>(null);
 
   async function post(body: object) {

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { isAdmin } from "@/lib/admin-auth";
 import AdminShell from "@/components/AdminShell";
 import StatCard from "@/components/StatCard";
-import { checkoutProblems } from "@/lib/razorpay";
+import { checkoutProblems, deploymentInfo } from "@/lib/razorpay";
 import { demoCount } from "@/lib/demo-store";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +38,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   const allDownloads = downloadStats.reduce((a, d) => a + d.total_downloads, 0);
   const exportHref = "/api/admin/export";
   const checkoutIssues = checkoutProblems();
+  const deploy = deploymentInfo();
 
   return (
     <AdminShell
@@ -55,7 +56,9 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
         {checkoutIssues.length > 0 && <>
           <p className="mt-1 text-sm text-ink-soft">Fix these in Vercel, then Settings, then Environment Variables (Production), and redeploy:</p>
           <ul className="mt-2 grid gap-1 font-mono text-[13px]">{checkoutIssues.map((issue) => <li key={issue}>• {issue}</li>)}</ul>
+          <p className="mt-3 text-xs text-ink-soft">&quot;Not set in this deployment&quot; means this site never received the variable: check it is ticked for Production, is in this Vercel project, and the name matches exactly. Then redeploy.</p>
         </>}
+        <p className="mt-2 text-xs text-ink-soft">Checked by: {deploy.environment ? `${deploy.environment} deployment` : "a local run"}{deploy.branch ? ` · branch ${deploy.branch}` : ""}{deploy.commit ? ` · commit ${deploy.commit}` : ""}</p>
       </section>
       <section className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line bg-white px-5 py-4" aria-labelledby="demo-status">
         <div><h2 id="demo-status" className="text-base font-semibold">Demo catalogue {demoBooks > 0 ? `· ${demoBooks} preview add-ons live` : "· off"}</h2>

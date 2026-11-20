@@ -63,6 +63,9 @@ try {
   dependencies['@/lib/file-types'] = await load('../src/lib/file-types.ts');
   dependencies['@/lib/admin-sale'] = await load('../src/lib/admin-sale.ts');
   dependencies['@/lib/money'] = await load('../src/lib/money.ts');
+  // File cleanup talks to the Blob store; here it only records what it was asked to remove (the rules are tested in test-storage.mjs).
+  dependencies['@/lib/storage-admin'] = { booksDocs: (slugs) => dependencies['@/lib/db'].sql`select to_jsonb(t)::text as doc from books t where slug = any(${slugs}::text[])`,
+    pathsBefore: async (q) => (await q).map((r) => r.doc), releaseQuietly: async (paths) => { (globalThis.releasedUploads ??= []).push(...paths); return paths.length; } };
   dependencies['@/lib/offers'] = await load('../src/lib/offers.ts');
   dependencies['../ProductForm'] = await load('../src/app/admin/products/ProductForm.tsx');
   dependencies['../ProductUpload'] = { default: () => null };

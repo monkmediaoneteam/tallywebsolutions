@@ -6,7 +6,7 @@
 import Link from "next/link";
 import { STORE } from "@/lib/store";
 
-export type AdminSection = "overview" | "analytics" | "orders" | "books" | "offers" | "categories" | "authors" | "collections" | "banners" | "modules" | "homepage" | "theme" | "reviews" | "delivery";
+export type AdminSection = "overview" | "analytics" | "orders" | "books" | "offers" | "categories" | "authors" | "collections" | "banners" | "seo" | "modules" | "homepage" | "theme" | "reviews" | "delivery" | "storage";
 const nav: { key: AdminSection; label: string; href: string }[] = [
   { key: "overview", label: "Dashboard", href: "/admin" },
   { key: "analytics", label: "Analytics", href: "/admin/analytics" },
@@ -17,11 +17,13 @@ const nav: { key: AdminSection; label: string; href: string }[] = [
   { key: "authors", label: "Developers", href: "/admin/platform/authors" },
   { key: "collections", label: "Collections", href: "/admin/platform/collections" },
   { key: "banners", label: "Banners", href: "/admin/banners" },
+  { key: "seo", label: "SEO", href: "/admin/seo" },
   { key: "homepage", label: "Homepage sections", href: "/admin/homepage" },
   { key: "theme", label: "Theme", href: "/admin/theme" },
   { key: "modules", label: "Advanced content", href: "/admin/platform/modules" },
   { key: "reviews", label: "Submissions", href: "/admin/platform/reviews" },
   { key: "delivery", label: "Delivery recovery", href: "/admin/platform/delivery" },
+  { key: "storage", label: "Storage", href: "/admin/storage" },
 ];
 
 

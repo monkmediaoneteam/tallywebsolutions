@@ -1,9 +1,12 @@
 import { Legal, ENTITY } from "@/components/legal";
-export const metadata = { title: "Delivery Policy" };
+import { seoMetadata, SeoHead } from "@/lib/seo-meta";
+export const dynamic = "force-dynamic";
+export async function generateMetadata() { return seoMetadata("/delivery-policy"); }
 
 export default function Page() {
   return (
     <Legal title="Delivery Policy">
+      <SeoHead path="/delivery-policy" />
       <p>All add-ons sold here are <strong>digital</strong>. Nothing is shipped and
       no physical delivery takes place.</p>
       <p>After your payment is confirmed and your digital copy is prepared:</p>

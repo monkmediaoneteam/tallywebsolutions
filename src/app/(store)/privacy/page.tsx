@@ -1,9 +1,12 @@
 import { Legal, ENTITY } from "@/components/legal";
-export const metadata = { title: "Privacy Policy" };
+import { seoMetadata, SeoHead } from "@/lib/seo-meta";
+export const dynamic = "force-dynamic";
+export async function generateMetadata() { return seoMetadata("/privacy"); }
 
 export default function Page() {
   return (
     <Legal title="Privacy Policy">
+      <SeoHead path="/privacy" />
       <p>We collect only what is needed to deliver a book you have paid for: your
       name, email address, phone number, and the record of your order.</p>
       <p>Payments are processed by Razorpay. We never see or store your card,

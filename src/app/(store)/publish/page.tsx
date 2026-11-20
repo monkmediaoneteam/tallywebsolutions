@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { getReader } from "@/lib/reader-auth";
+import { seoMetadata, SeoHead } from "@/lib/seo-meta";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Sell with us", robots: { index: true, follow: true } };
+export async function generateMetadata() { return seoMetadata("/publish"); }
 export default async function PublishPage() {
   const reader = await getReader();
   const start = reader ? "/author" : "/login?next=/author";
-  return <div className="wrap page-shell">
+  return <div className="wrap page-shell"><SeoHead path="/publish" />
     <section className="publish-band reveal"><div><p className="eyebrow">For developers</p><h1>Submit your Tally add-on</h1>
       <p>Review by our team, fair terms, Tally users across India.</p>
       <Link className="btn btn-light" href={start}>{reader ? "Open your workspace" : "Sign in to start"} <span aria-hidden="true">→</span></Link></div></section>

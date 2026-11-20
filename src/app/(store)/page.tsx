@@ -6,6 +6,7 @@ import type { Position } from "@/lib/banner-sections";
 import { getSiteSettings } from "@/lib/site-settings";
 import { resolveLayout, sectionFrame, type ResolvedSection } from "@/lib/home-sections";
 import { siteUrl } from "@/lib/store";
+import { seoMetadata, SeoHead } from "@/lib/seo-meta";
 import HeroCampaign from "@/components/home/HeroCampaign";
 import CategoryTiles from "@/components/home/CategoryTiles";
 import Featured from "@/components/home/Featured";
@@ -20,7 +21,7 @@ import { ImageOverlay, ImageText, RichText } from "@/components/home/ContentSect
 import { SectionList } from "@/components/home/BannerSectionView";
 
 export const dynamic = "force-dynamic";
-export const metadata = { alternates: { canonical: siteUrl() } };
+export async function generateMetadata() { return seoMetadata("/"); }
 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 const num = (v: unknown, fallback: number) => (typeof v === "number" ? v : fallback);
@@ -77,8 +78,11 @@ export default async function Home() {
     }
   }
 
-  return <>{layout.filter((s) => s.enabled).map((section) => {
+  return <>
+    <SeoHead path="/" site />
+    {layout.filter((s) => s.enabled).map((section) => {
     const frame = sectionFrame(section.settings);
     return <div key={section.id} className={frame.className} style={frame.style} data-section={section.type}>{draw(section)}</div>;
-  })}</>;
+  })}
+  </>;
 }
