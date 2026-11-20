@@ -1,14 +1,16 @@
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { createIsolatedDatabase } from './isolated-db.mjs';
+import { seedAnalyticsDemo } from './analytics-fixtures.mjs';
 
 const port = Number(process.argv[2] || 3100);
 if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('Invalid preview port.');
 const { db, directory } = await createIsolatedDatabase({ seed: true });
+await seedAnalyticsDemo(db);
 await db.close();
 const adminToken = process.env.ADMIN_TOKEN || randomBytes(32).toString('hex');
 if (!/^[a-f0-9]{64}$/.test(adminToken)) throw new Error('ADMIN_TOKEN for the preview must be 64 lowercase hex characters.');
-const preview = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '--port', String(port)], {
+const preview = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '--port', String(port), ...(process.env.PREVIEW_WEBPACK ? ['--webpack'] : [])], {
   stdio: 'inherit', env: { ...process.env,
     PGLITE_DATABASE_DIR: directory, DATABASE_URL: '', AUTH_SECRET: randomBytes(32).toString('hex'),
     NEXT_PUBLIC_SITE_URL: `http://localhost:${port}`, NEXT_PUBLIC_STORE_NAME: 'Tallywebsolutions',
