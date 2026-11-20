@@ -9,6 +9,7 @@ import { sql } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 import { checkOrigin } from "@/lib/reader-auth";
 import { readLimitedBody } from "@/lib/submissions";
+import { booksDocs, pathsBefore, releaseQuietly } from "@/lib/storage-admin";
 import { ALREADY_ATTACHED, MAX_UPLOAD_BYTES, SaleError, recordBookCover, recordBookFile } from "@/lib/admin-sale";
 
 export const runtime = "nodejs";
@@ -63,6 +64,8 @@ export async function POST(req: Request) {
       }
     } finally { stream.releaseLock(); }
     const bytes = Buffer.concat(chunks);
+    // The files this upload replaces: removed once the new one is saved, unless an order still uses them.
+    const before = replace ? await pathsBefore(booksDocs([slug])) : [];
     if (kind === "pdf") await recordBookFile(sql, { slug, url: metadata.url, bytes, pathname, fileType, name: typeof input.name === "string" ? input.name : "", replace });
     else {
       try {
@@ -71,6 +74,7 @@ export async function POST(req: Request) {
       } catch (error) { throw error instanceof SaleError ? error : new SaleError("The cover image could not be read."); }
       await recordBookCover(sql, { slug, bytes, pathname, replace });
     }
+    if (before.length) await releaseQuietly(before.filter((p) => p !== pathname));
     for (const path of ["/", "/admin/products", `/admin/products/${slug}`, `/products/${slug}`, "/search"]) revalidatePath(path);
     return NextResponse.json({ ok: true });
   } catch (error) {
