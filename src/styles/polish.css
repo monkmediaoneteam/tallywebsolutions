@@ -1,0 +1,38 @@
+/* Storefront polish. Loaded last. */
+
+/* FAQ: each card opens on its own. A closed card keeps its own height instead of stretching to the open one beside it. */
+.faq-grid { align-items: start; }
+.faq-item summary { min-height: 64px; }
+
+/* Product page image: the picture itself, at its own shape. No tinted frame and no second box behind it. */
+.gallery-stage { display: block; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+.gallery-stage::before, .gallery-stage::after { content: none; }
+.gallery-stage .ptile { width: 100%; }
+.gallery-stage .ptile > img { width: 100%; height: auto; aspect-ratio: auto; object-fit: contain; border: 1px solid var(--line); border-radius: 18px; background: #fff; }
+
+/* "Look inside": readable text on the light panel, and the picture as a plain image (no white tile or shadow). */
+.look-band { padding: clamp(24px, 4vw, 44px); }
+.look-card { grid-template-columns: minmax(0, 1fr); align-content: start; gap: 14px; padding: 16px; }
+.look-cover { display: block; }
+.look-cover img { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border: 1px solid var(--line); border-radius: 12px; box-shadow: none; background: #fff; }
+.look-title { color: var(--ink); font-size: 17px; }
+.look-text li { color: var(--ink-soft); }
+.look-grid.look-1 .look-card { grid-template-columns: minmax(160px, 260px) minmax(0, 1fr); align-items: center; gap: 28px; padding: 20px; }
+.look-grid.look-1 .look-cover img { width: 100%; }
+@media (max-width: 900px) { .look-grid.look-1 .look-card { grid-template-columns: minmax(0, 1fr); } }
+
+/* About / Contents / More details: a clear tab bar with an underline, larger text. */
+.book-tabs { margin-top: 48px; }
+.tab-list { display: flex; gap: clamp(18px, 3vw, 36px); width: 100%; padding: 0; overflow-x: auto; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: none; box-shadow: none; scrollbar-width: none; }
+.tab-list::-webkit-scrollbar { display: none; }
+.tab-list button { position: relative; padding: 14px 2px 16px; border-radius: 0; background: none; font: 500 16px/1.2 var(--font-sans); color: var(--ink-soft); }
+.tab-list button:hover { color: var(--ink); }
+.tab-list button[aria-selected="true"] { background: none; color: var(--ink); }
+.tab-list button[aria-selected="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--brand); }
+.tab-list button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 6px; }
+.tab-panel { max-width: 84ch; padding: 28px 0 8px; font-size: 16px; }
+.tab-panel .prose p { font-size: 16px; line-height: 1.75; }
+.tab-panel .contents-list li { font-size: 16px; line-height: 1.6; }
+.tab-panel .catalogue { width: 100%; max-width: 640px; }
+.tab-panel .catalogue th { width: 38%; text-align: left; font-weight: 500; color: var(--ink-soft); }
+.tab-panel .catalogue th, .tab-panel .catalogue td { padding: 12px 14px; border-bottom: 1px solid var(--line); font-size: 15px; }

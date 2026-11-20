@@ -16,7 +16,7 @@ export default function BookCard({ book, enabled, morph = true }: { book: Public
   return <article className="book-card surface surface-hover surface-lit" data-book-card>
     <div className="card-plate plate">
       <Link href={href(book)} className="card-cover" aria-label={`View ${book.title}`} tabIndex={-1}>{morph ? <Morph name={morphName(book.slug)}>{cover}</Morph> : cover}</Link>
-      {book.comingSoon ? <span className="pill card-flag">Coming soon</span> : book.offers?.[0] ? <span className="pill card-flag offer">{book.offers[0]}</span> : off > 0 && <span className="pill card-flag offer">{off}% off</span>}
+      {book.offers?.[0] ? <span className="pill card-flag offer">{book.offers[0]}</span> : off > 0 && <span className="pill card-flag offer">{off}% off</span>}
       <WishlistButton slug={book.slug} title={book.title} />
       <QuickView book={book} enabled={enabled} />
     </div>
