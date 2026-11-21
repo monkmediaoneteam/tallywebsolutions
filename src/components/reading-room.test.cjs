@@ -387,7 +387,6 @@ async function checkHomepage() {
     React.createElement(load("components/home/CategoryTiles.tsx").default, { tiles: [{ slug: "science", name: "Science", count: 3, covers: ["/assets/book1.png"] }] }),
     React.createElement(load("components/home/Featured.tsx", { ...motionStub, "next/navigation": { useRouter: () => ({ push() {} }) } }).default, { books: [homeBook], rails: [], enabled: true }),
     React.createElement(load("components/home/LookInside.tsx").default, { books: [homeBook] }),
-    React.createElement(load("components/home/PublishBand.tsx", motionStub).default, { covers: heroCovers }),
     React.createElement(load("components/home/FaqGrid.tsx").default),
   ].map((el) => renderToStaticMarkup(el)).join("");
   assert.deepEqual(copyViolations(sections), [], "homepage copy stays short");

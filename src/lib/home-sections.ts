@@ -139,20 +139,6 @@ export const SECTION_TYPES: SectionType[] = [
     fields: common(heading("Read in your language"), COLOURS, sectionFields()), summary: head("Read in your language"),
   },
   {
-    id: "developers", label: "Developers", category: "Store sections", singleton: true, removable: true,
-    description: "Round portraits of developers who sell here.",
-    fields: common(heading("Built by"), [f("Layout", "limit", "range", "Developers to show", 10, { min: 2, max: 20, step: 1 })], COLOURS, sectionFields()),
-    summary: head("Built by"),
-  },
-  {
-    id: "publish", label: "Sell with us", category: "Store sections", singleton: true, removable: true,
-    description: "The band inviting developers to submit an add-on.",
-    fields: common([f("Content", "eyebrow", "text", "Small label", "For developers", { maxLength: 60 }), f("Content", "heading", "text", "Heading", "Sell your Tally add-on with us", { maxLength: 120 }),
-      f("Content", "description", "textarea", "Text", "Share your TDL add-on with Tally users across India.", { maxLength: 400 })],
-    button("Submit an add-on", "/publish"), COLOURS, sectionFields({ rounded: false })),
-    summary: head("Sell your Tally add-on with us"),
-  },
-  {
     id: "faq", label: "Questions", category: "Store sections", singleton: true, removable: true,
     description: "Common questions, each opening to its answer.",
     fields: common(heading("Good to know"), [f("Layout", "columns", "select", "Columns on desktop", "2", { options: [["1", "One"], ["2", "Two"]] })], COLOURS, sectionFields()),
@@ -163,8 +149,7 @@ export const SECTION_TYPES: SectionType[] = [
       { question: "Do I need an account?", answer: "No. Check out with your email; sign in later to see your library." },
       { question: "What do I receive?", answer: "TallyPrime TDL source code or TCP files, licensed for your own use. Each page states the version it supports." },
       { question: "Can I buy several add-ons?", answer: "Yes. Add them to your bag and pay once." },
-      { question: "Can I get a refund?", answer: "If a file won't open or doesn't work with the stated TallyPrime version, we replace or refund it." },
-      { question: "Can I sell my add-on here?", answer: "Yes. Submit your add-on for review from the developer page." }] },
+      { question: "Can I get a refund?", answer: "If a file won't open or doesn't work with the stated TallyPrime version, we replace or refund it." }] },
     summary: (s, blocks) => `${(s.heading as string) || "Good to know"} · ${blocks.length} question${blocks.length === 1 ? "" : "s"}`,
   },
   {
@@ -250,7 +235,7 @@ const DEFAULT_ORDER: [id: string, type: string, settings?: Settings][] = [
   ["top", "top"], ["quick-links", "quick-links"], ["categories", "categories"],
   ["slot-after-categories", "banner-slot", { position: "home-after-categories" }],
   ["rails", "rails"], ["slot-after-products", "banner-slot", { position: "home-after-products" }],
-  ["look-inside", "look-inside"], ["languages", "languages"], ["developers", "developers"], ["publish", "publish"],
+  ["look-inside", "look-inside"], ["languages", "languages"],
   ["slot-before-faq", "banner-slot", { position: "home-before-faq" }], ["faq", "faq"],
 ];
 export function defaultLayout(): Layout {

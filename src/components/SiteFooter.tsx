@@ -10,7 +10,6 @@ export default function SiteFooter({ name, categories }: { name: string; categor
     ["Shop", [["All add-ons", "/search"], ["New", "/search?sort=new"], ["Offers", "/search?offer=1"], ["Wishlist", "/wishlist"]]],
     ["Account", [["Library", "/library"], ["Bag", "/cart"], ["Sign in", "/login"]]],
     ["Help", [["Delivery", "/delivery-policy"], ["Refunds", "/refund-policy"], ["Privacy", "/privacy"], ["Terms", "/terms"]]],
-    ["Developers", [["Sell with us", "/publish"], ["Workspace", "/author"]]],
   ];
   return <footer className="site-footer"><div className="wrap">
     <ul className="trust-row">{TRUST.map(([Icon, title, note]) => <li key={title}><Icon size={26} strokeWidth={1.6} aria-hidden="true" /><p><strong>{title}</strong><span>{note}</span></p></li>)}</ul>

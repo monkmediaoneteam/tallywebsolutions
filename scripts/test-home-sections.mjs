@@ -56,21 +56,20 @@ assert.throws(() => cleanSection(section('faq', { blocks: Array.from({ length: t
 assert.equal(cleanSection(section('faq', { blocks: [{ id: 'A b', settings: { question: 'q', answer: 'a', junk: 1 } }] }), true).blocks[0].settings.junk, undefined);
 
 // ---- the default layout reproduces today's homepage, section for section
-const today = ['top', 'quick-links', 'categories', 'banner-slot:home-after-categories', 'rails', 'banner-slot:home-after-products', 'look-inside', 'languages', 'developers', 'publish', 'banner-slot:home-before-faq', 'faq'];
+const today = ['top', 'quick-links', 'categories', 'banner-slot:home-after-categories', 'rails', 'banner-slot:home-after-products', 'look-inside', 'languages', 'banner-slot:home-before-faq', 'faq'];
 const key = s => s.type === 'banner-slot' ? `banner-slot:${s.settings.position}` : s.type;
 assert.deepEqual(resolveLayout(undefined).map(key), today, 'no saved layout: the default order');
 assert.deepEqual(resolveLayout({ junk: true }).map(key), today, 'a damaged saved layout falls back to the default');
-assert.deepEqual(defaultLayout().sections.map(s => s.id), ['top', 'quick-links', 'categories', 'slot-after-categories', 'rails', 'slot-after-products', 'look-inside', 'languages', 'developers', 'publish', 'slot-before-faq', 'faq']);
+assert.deepEqual(defaultLayout().sections.map(s => s.id), ['top', 'quick-links', 'categories', 'slot-after-categories', 'rails', 'slot-after-products', 'look-inside', 'languages', 'slot-before-faq', 'faq']);
 const dflt = resolveLayout(null);
 assert.ok(dflt.every(s => s.enabled));
-assert.equal(dflt.find(s => s.type === 'faq').blocks.length, 6, 'the six questions the page shows today');
+assert.equal(dflt.find(s => s.type === 'faq').blocks.length, 5, 'the five questions the page shows today');
 assert.deepEqual(dflt.find(s => s.type === 'quick-links').blocks.map(b => b.settings.label), ['Bestsellers', 'New arrivals', 'Offers', 'Under ₹199', 'TDL files', 'All add-ons']);
 assert.equal(dflt.find(s => s.type === 'categories').settings.heading, 'Browse by category');
-assert.equal(dflt.find(s => s.type === 'publish').settings.heading, 'Sell your Tally add-on with us');
 assert.equal(dflt.find(s => s.type === 'rails').settings.limit, 12);
 // a default section draws no wrapper styling at all: it looks exactly like before
 for (const s of dflt) assert.deepEqual(sectionFrame(s.settings), { className: 'hs', style: {} }, `${s.type} default frame is bare`);
-assert.ok(!/(book|novel|author|read)/i.test(JSON.stringify(SECTION_TYPES.filter(t => t.id !== 'languages' && t.id !== 'developers').map(t => [t.label, t.description, t.fields.map(f => [f.label, f.default, f.help])]))), 'Tally wording: no book words');
+assert.ok(!/(book|novel|author|read)/i.test(JSON.stringify(SECTION_TYPES.filter(t => t.id !== 'languages').map(t => [t.label, t.description, t.fields.map(f => [f.label, f.default, f.help])]))), 'Tally wording: no book words');
 
 // ---- resolution with disabled, reordered, duplicated sections
 let layout = defaultLayout();
@@ -82,7 +81,7 @@ layout = ops.duplicateSection(dup.layout, dup.id).layout;
 const resolved = resolveLayout(layout);
 assert.equal(resolved.find(s => s.id === 'languages').enabled, false, 'a switched-off section stays in the list but is marked disabled');
 const order = resolved.map(s => s.id);
-assert.ok(order.indexOf('faq') === order.indexOf('publish') - 1 && order.indexOf('publish') < order.indexOf('slot-before-faq'), 'moved up twice');
+assert.ok(order.indexOf('faq') < order.indexOf('languages') && order.indexOf('faq') < order.indexOf('slot-before-faq'), 'moved up twice');
 const rich = resolved.filter(s => s.type === 'rich-text');
 assert.equal(rich.length, 2); assert.notEqual(rich[0].id, rich[1].id, 'a duplicate gets its own id');
 assert.equal(rich[1].settings.heading, rich[0].settings.heading, 'a duplicate keeps the settings');
@@ -142,7 +141,7 @@ const broken = load('src/lib/site-settings.ts', { './db': { sql() { return Promi
 const quiet = console.error; console.error = () => {};
 assert.deepEqual(await broken.getSiteSettings(), {}, 'any read failure still renders the defaults');
 console.error = quiet;
-assert.equal(resolveLayout((await missing.getSiteSettings()).home_layout).length, 12, 'and the page gets the default layout');
+assert.equal(resolveLayout((await missing.getSiteSettings()).home_layout).length, 10, 'and the page gets the default layout');
 
 const { db } = await createIsolatedDatabase();
 try {
@@ -161,7 +160,7 @@ try {
   assert.equal((await db.query(`select count(*)::int n from site_settings where key='theme'`)).rows[0].n, 1, 'saving again updates the one row');
   assert.equal((await store.readSiteSetting('theme')).value.brand, '#654321');
   await store.deleteSiteSetting('home_layout');
-  assert.equal(resolveLayout((await store.getSiteSettings()).home_layout).length, 12, 'reset returns the default layout');
+  assert.equal(resolveLayout((await store.getSiteSettings()).home_layout).length, 10, 'reset returns the default layout');
   await db.exec(await (await import('node:fs/promises')).readFile(new URL('../migrations/013-site-settings.sql', import.meta.url), 'utf8'));
 } finally { await db.close(); }
 console.log('Homepage section checks passed: schema validation, default layout, ops, frame styles, theme, storage.');

@@ -44,14 +44,13 @@ export default function SearchBox() {
   const options: Option[] = result ? [
     ...result.books.map((b) => ({ key: `b-${b.slug}`, href: `/products/${encodeURIComponent(b.slug)}`, label: b.title, cover: b.cover,
       detail: [b.authorship, b.saleable && b.price > 0 ? rupees(b.price) : null].filter(Boolean).join(" · ") })),
-    ...result.authors.map((a) => ({ key: `a-${a.id}`, href: `/authors/${encodeURIComponent(a.id)}`, label: a.name, detail: "Author" })),
     ...result.categories.map((c) => ({ key: `c-${c.slug}`, href: `/category/${c.slug}`, label: c.name, detail: "Category" })),
   ] : [];
   const expanded = open && options.length > 0;
   return <form action="/search" className="header-search" role="search" onSubmit={(e) => {
     if (expanded && active >= 0) { e.preventDefault(); setOpen(false); router.push(options[active].href); }
   }}>
-    <label htmlFor={`${id}-input`} className="sr-only">Search products, developers and categories</label>
+    <label htmlFor={`${id}-input`} className="sr-only">Search products and categories</label>
     <input ref={input} id={`${id}-input`} name="q" type="search" placeholder="Search add-ons, GST, bank, invoices" autoComplete="off" value={value}
       role="combobox" aria-expanded={expanded} aria-controls={`${id}-list`} aria-autocomplete="list"
       aria-activedescendant={expanded && active >= 0 ? `${id}-opt-${active}` : undefined}

@@ -21,8 +21,8 @@ try {
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(`${base}/admin`);
   await page.waitForLoadState('networkidle');
-  for (const [link, heading] of [['Orders', 'Orders'], ['Products', 'Products'], ['Categories', 'Categories'], ['Developers', 'Developers'],
-    ['Collections', 'Collections'], ['Banners', 'Banners'], ['Homepage sections', 'Homepage sections'], ['Theme', 'Theme'], ['Advanced content', 'Advanced content'], ['Submissions', 'Submissions'], ['Delivery recovery', 'Delivery recovery'], ['Storage', 'Storage']]) {
+  for (const [link, heading] of [['Orders', 'Orders'], ['Products', 'Products'], ['Categories', 'Categories'],
+    ['Collections', 'Collections'], ['Banners', 'Banners'], ['Homepage sections', 'Homepage sections'], ['Theme', 'Theme'], ['Advanced content', 'Advanced content'], ['Delivery recovery', 'Delivery recovery'], ['Storage', 'Storage']]) {
     const menuLink = page.getByRole('navigation').getByRole('link', { name: link, exact: true });
     const destination = new URL(await menuLink.getAttribute('href'), base).href;
     await Promise.all([page.waitForURL(destination, { waitUntil: 'networkidle', timeout: 120000 }), menuLink.click()]);
@@ -296,7 +296,7 @@ try {
   };
   const saveSection = async () => { await page.getByRole('button', { name: 'Save', exact: true }).click(); await slow(page).toHaveURL(/\?saved=1/); await slow(page.getByText('Saved. The storefront is updated.')).toBeVisible(); };
   const defaultOrder = (await order()).map((s) => s.split('|')[0]);
-  assert.deepEqual(defaultOrder.filter((t) => t !== 'banner-slot' && t !== 'top'), ['quick-links', 'categories', 'rails', 'look-inside', 'languages', 'developers', 'publish', 'faq'].filter((t) => defaultOrder.includes(t)), 'default order is the storefront as it was');
+  assert.deepEqual(defaultOrder.filter((t) => t !== 'banner-slot' && t !== 'top'), ['quick-links', 'categories', 'rails', 'look-inside', 'languages', 'faq'].filter((t) => defaultOrder.includes(t)), 'default order is the storefront as it was');
   await addSection('Rich text');
   await page.locator('input[name="s.heading"]').fill('Check heading');
   await page.locator('input[name="s.text_color"]').fill('#aa0000');
@@ -378,7 +378,7 @@ try {
   await page.locator('[data-block]').last().locator('input').first().fill('Block question?');
   await saveSection();
   await page.goto(base, { waitUntil: 'networkidle' });
-  await expect(page.locator('#faq summary')).toHaveCount(6);
+  await expect(page.locator('#faq summary')).toHaveCount(5);
   await expect(page.locator('#faq summary', { hasText: 'Block question?' })).toHaveCount(1);
   await expect(page.locator('#faq summary', { hasText: 'How do I get my add-on?' })).toHaveCount(0);
   // Delete the test sections.

@@ -54,7 +54,7 @@ for (const [name, engine] of Object.entries({ chromium, firefox, webkit })) {
       }
       console.log(`${name}: ${width}px routes checked`);
     }
-    for (const route of ['/', '/search', '/category/science', '/products/demo-the-monsoon-ledger', '/cart', '/wishlist', '/login', '/publish']) {
+    for (const route of ['/', '/search', '/category/science', '/products/demo-the-monsoon-ledger', '/cart', '/wishlist', '/login']) {
       await page.goto(base + route, { waitUntil: 'networkidle' });
       const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
       for (const violation of result.violations) failures.push(`${name}: accessibility ${route}: ${violation.id}: ${violation.nodes.map(node => node.target).join(',')}`);
