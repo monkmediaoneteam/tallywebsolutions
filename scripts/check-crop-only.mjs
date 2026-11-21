@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import { chromium, expect as baseExpect } from '@playwright/test';
+import sharp from 'sharp';
+import { checkCrop } from './browser-crop-check.mjs';
+const base = process.env.PREVIEW_URL;
+assert.ok(base && ['localhost','127.0.0.1'].includes(new URL(base).hostname));
+const expect = baseExpect.configure({ timeout: 40000 });
+const browser = await chromium.launch();
+const context = await browser.newContext();
+const page = await context.newPage();
+page.setDefaultNavigationTimeout(120000);
+const errors = [];
+page.on('console', m => { if (m.type() === 'error') errors.push({ text: m.text(), location: m.location() }); });
+page.on('pageerror', e => errors.push({ text: String(e) }));
+try {
+  await page.goto(base + '/admin/login');
+  await page.getByLabel('Admin email').fill('admin@preview.test');
+  await page.getByLabel('Admin password').fill(process.env.ADMIN_TOKEN);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page).toHaveURL(base + '/admin');
+  await page.goto(base + '/admin/banners/sections/hero', { waitUntil: 'networkidle' });
+  await page.locator('[name="width"]').fill('1000');
+  await page.locator('[name="height"]').fill('1000');
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page).toHaveURL(/saved=1/);
+  const fixture = await sharp({ create: { width: 1600, height: 600, channels: 3, background: '#236852' } }).png().toBuffer();
+  await checkCrop({ page, context, base, key: 'hero', fixture, expect });
+  assert.deepEqual(errors, [], 'crop upload/cancel must not log browser errors');
+  console.log('Standalone crop check passed without console errors.');
+} finally { await browser.close(); }

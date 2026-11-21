@@ -6,6 +6,12 @@ assert.ok(base && ['localhost', '127.0.0.1'].includes(new URL(base).hostname));
 const expect = baseExpect.configure({ timeout: 40000 });
 const browser = await chromium.launch();
 const page = await browser.newPage();
+// The preceding banner acceptance test stores this provider fixture only in its disposable DB.
+await page.route('https://banner-fixture.invalid/**', route => route.fulfill({
+  contentType: 'image/svg+xml',
+  body: '<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="600"><rect width="1600" height="600" fill="#236852"/></svg>',
+}));
+page.setDefaultNavigationTimeout(120000);
 const errors = [];
 page.on('pageerror', e => errors.push(String(e)));
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });

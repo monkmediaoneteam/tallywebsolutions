@@ -20,14 +20,25 @@ export default function ImageCropper({ file, size, onCancel, onComplete }: {
   const [error, setError] = useState("");
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
-    const url = URL.createObjectURL(file);
-    setSource(url);
+    // A bounded local data URL survives Strict Mode's effect teardown/replay.
+    // Revoking a blob URL during that replay can race the cropper's image request.
+    const reader = new FileReader();
     const img = new Image();
     img.onload = () => setImage(img);
     img.onerror = () => setError("That image could not be read. Choose another image.");
-    img.src = url;
+    reader.onload = () => {
+      if (typeof reader.result !== "string") return;
+      setSource(reader.result);
+      img.src = reader.result;
+    };
+    reader.onerror = () => setError("That image could not be read. Choose another image.");
+    reader.readAsDataURL(file);
     dialog.current?.showModal();
-    return () => { img.onload = null; img.onerror = null; URL.revokeObjectURL(url); previous?.focus(); };
+    return () => {
+      reader.onload = null; reader.onerror = null;
+      if (reader.readyState === FileReader.LOADING) reader.abort();
+      img.onload = null; img.onerror = null; img.removeAttribute("src"); previous?.focus();
+    };
   }, [file]);
   const sameShape = image && Math.abs(image.naturalWidth * size.height - image.naturalHeight * size.width) <= Math.max(size.width, size.height);
   async function save() {
