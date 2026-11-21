@@ -264,7 +264,7 @@ export function defaultLayout(): Layout {
 const HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 const RELATIVE = /^\/(?!\/)[^\s<>"'\\`]*$/;
 const HTTPS = /^https:\/\/[^\s<>"'\\`]+$/;
-const MEDIA = /^\/api\/media\/[^\s<>"'\\`]+$/;
+const MEDIA = /^\/api\/media\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g;
 export const isHex = (v: unknown): v is string => typeof v === "string" && HEX.test(v);
 export const isSafeUrl = (v: string) => v === "" || ((RELATIVE.test(v) || HTTPS.test(v)) && v.length <= 2000);

@@ -26,6 +26,10 @@ assert.equal(R({ from: '2027-01-01', to: '2027-01-05' }).preset, '30d', 'a range
 for (const bad of [{ from: 'bad', to: '2026-10-01' }, { from: '2026-02-30', to: '2026-03-01' }, { range: 'constructor' }, { range: "7d'; drop table orders;--" }])
   assert.notEqual(parseRange(bad, today).preset, 'custom', 'junk is ignored: ' + JSON.stringify(bad));
 assert.equal(parseRange({ range: 'constructor' }, today).preset, '30d');
+for (const from of ['2026-99-99', '2026-00-00', '2026-13-01']) {
+  assert.doesNotThrow(() => parseRange({ from, to: today }, today), 'invalid calendar input must not crash analytics');
+  assert.equal(parseRange({ from, to: today }, today).preset, '30d');
+}
 const long = parseRange({ from: '2020-01-01', to: '2026-10-01' }, today);
 assert.equal(long.days, 400); assert.equal(long.clamped, true); assert.equal(long.to, '2026-10-01'); assert.equal(long.from, '2025-08-28');
 assert.equal(parseRange({}, today).compare, true); assert.equal(parseRange({ compare: '0' }, today).compare, false);
@@ -124,6 +128,7 @@ try {
   // 90 days: weekly buckets
   const q = await getAnalytics(parseRange({ range: '90d' }, today));
   assert.equal(q.weekly, true); assert.ok(q.sales.data.buckets.length <= 14); assert.equal(q.sales.data.buckets.reduce((t, b) => t + b.revenue, 0), q.sales.data.current.revenue);
+  assert.deepEqual(q.sales.data.previousBuckets.map(b => b.last), q.sales.data.buckets.map(b => b.last), 'comparison points cover the same relative days, including partial weeks');
 
   // downloads, wishlist, offers
   await db.exec(`insert into downloads(order_id,book_slug,count,last_at) values('a','x',3,'2026-10-15T10:00:00+05:30'),('old','x',2,'2026-10-05T10:00:00+05:30'),('dev','x',9,'2026-10-15T10:00:00+05:30');
@@ -145,6 +150,10 @@ try {
   assert.equal((await getAnalytics(week)).categories.ok, false, 'a missing column is also tolerated');
   await db.exec('drop table downloads');
   assert.equal((await getAnalytics(week)).downloads.ok, false);
+  await db.exec(`insert into books(slug,title,price_inr,sort) select 'no-sale-' || n, 'No sale ' || n, 100, n + 100 from generate_series(1,60) n`);
+  const many = await getAnalytics(week);
+  assert.equal(many.lowSellers.data.rows.length, 50, 'no-sales list is capped at 50');
+  assert.equal(many.lowSellers.data.total, 62);
 
   // export: all orders, or only a range, and dates are validated
   assert.equal((await exportOrders()).length, 9);

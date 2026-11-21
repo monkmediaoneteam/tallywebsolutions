@@ -9,6 +9,7 @@ const expect = baseExpect.configure({ timeout: Number(process.env.EXPECT_TIMEOUT
 const browser = await chromium.launch();
 const page = await browser.newPage();
 page.setDefaultTimeout(60000);
+page.setDefaultNavigationTimeout(120000);
 page.on('dialog', (d) => d.accept().catch(() => {})); // every confirm in these checks is an accept
 const errors = [];
 page.on('pageerror', e => errors.push(String(e)));
@@ -19,10 +20,14 @@ try {
   await page.getByLabel('Admin password').fill(token);
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(`${base}/admin`);
+  await page.waitForLoadState('networkidle');
   for (const [link, heading] of [['Orders', 'Orders'], ['Products', 'Products'], ['Categories', 'Categories'], ['Developers', 'Developers'],
     ['Collections', 'Collections'], ['Banners', 'Banners'], ['Homepage sections', 'Homepage sections'], ['Theme', 'Theme'], ['Advanced content', 'Advanced content'], ['Submissions', 'Submissions'], ['Delivery recovery', 'Delivery recovery'], ['Storage', 'Storage']]) {
-    await page.getByRole('navigation').getByRole('link', { name: link, exact: true }).click();
+    const menuLink = page.getByRole('navigation').getByRole('link', { name: link, exact: true });
+    const destination = new URL(await menuLink.getAttribute('href'), base).href;
+    await Promise.all([page.waitForURL(destination, { waitUntil: 'networkidle', timeout: 120000 }), menuLink.click()]);
     await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
+    await page.waitForLoadState('networkidle');
   }
   // Storage explains how to connect file storage when none is set up (the preview has none).
   await expect(page.getByText('File storage is not connected')).toBeVisible();
@@ -578,4 +583,5 @@ try {
   // The deliberate refused saves (bad colour, bad JSON-LD, ...) answer 400 and the browser logs that; anything else is a real error.
   assert.deepEqual(errors.filter((e) => !/^console: Failed to load resource: the server responded with a status of 400/.test(e)), []);
 } finally { await browser.close(); }
+await import('./check-banner-controls.mjs');
 console.log('Admin browser check passed: sign-in, every section, draft product, details reflected in store, save errors shown, visibility and bulk actions reflected in store, banner table with edit and delete, banner and section pages, size presets and fit, new and deleted sections, image required, ended band hidden, banner schedule kept, category address made from the name, SEO manager (filter, live counters and previews, save, storefront tags, sitemap, site defaults, reset), homepage sections (add, edit, reorder, hide, duplicate, blocks, delete, reset) and theme reflected on the storefront.');

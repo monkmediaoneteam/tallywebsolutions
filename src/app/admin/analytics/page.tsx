@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/lib/admin-auth";
-import { rupees } from "@/lib/money";
+import { rupees as money } from "@/lib/money";
 import { getAnalytics, parseRange, todayIndia, pctChange, deltaTone, PRESET_LINKS, MAX_DAYS, type Analytics, type Section, type Tone } from "@/lib/analytics";
 import AdminShell from "@/components/AdminShell";
 import Chart from "@/components/admin/Chart";
@@ -27,14 +27,14 @@ function Panel({ title, note, children }: { title: string; note?: string; childr
     <div className="mt-4">{children}</div>
   </section>;
 }
-const Unavailable = () => <p className="text-sm text-ink-soft">Not available yet. This store has not set up the data behind this section.</p>;
+const Unavailable = () => <p className="text-sm text-ink-soft">Not available for this store yet</p>;
 const Empty = ({ children }: { children: React.ReactNode }) => <p className="rounded-lg bg-bg-2 px-4 py-6 text-center text-sm text-ink-soft">{children}</p>;
 function Show<T>({ s, children }: { s: Section<T>; children: (d: T) => React.ReactNode }) { return s.ok ? <>{children(s.data)}</> : <Unavailable />; }
 
 type Card = { label: string; value: string; now: number; before: number | null; hint?: string; spark: number[]; goodWhenUp?: boolean } | { label: string; unavailable: true };
 
 function KpiCard({ c, compare }: { c: Card; compare: boolean }) {
-  if ("unavailable" in c) return <div className="rounded-xl border border-line bg-white p-4"><p className="text-sm text-ink-soft">{c.label}</p><p className="mt-2 text-sm text-ink-soft">Not available</p></div>;
+  if ("unavailable" in c) return <div className="min-w-0 rounded-xl border border-line bg-white p-4" data-kpi={c.label}><p className="text-sm text-ink-soft">{c.label}</p><div className="mt-2"><Unavailable /></div><Sparkline values={[]} /></div>;
   const pct = c.before === null ? undefined : pctChange(c.now, c.before);
   const tone = pct === undefined ? "neutral" : deltaTone(pct, c.goodWhenUp ?? true);
   return <div className="min-w-0 rounded-xl border border-line bg-white p-4" data-kpi={c.label}>
@@ -54,9 +54,9 @@ function cards(a: Analytics): Card[] {
   if (s.ok) {
     const { current: c, previous: p, daily } = s.data;
     out.push(
-      { label: "Revenue", value: rupees(c.revenue), now: c.revenue, before: p?.revenue ?? null, spark: daily.map((d) => d.revenue) },
+      { label: "Revenue", value: money(c.revenue), now: c.revenue, before: p?.revenue ?? null, spark: daily.map((d) => d.revenue) },
       { label: "Orders", value: n(c.orders), now: c.orders, before: p?.orders ?? null, spark: daily.map((d) => d.orders), hint: "paid" },
-      { label: "Average order value", value: rupees(c.aov), now: c.aov, before: p?.aov ?? null, spark: daily.map((d) => (d.orders ? d.revenue / d.orders : 0)) },
+      { label: "Average order value", value: money(c.aov), now: c.aov, before: p?.aov ?? null, spark: daily.map((d) => (d.orders ? d.revenue / d.orders : 0)) },
       { label: `${WORDS.itemsTitle} sold`, value: n(c.items), now: c.items, before: p?.items ?? null, spark: daily.map((d) => d.items) });
   } else for (const l of ["Revenue", "Orders", "Average order value", `${WORDS.itemsTitle} sold`]) out.push({ label: l, unavailable: true });
   if (a.customers.ok) {
@@ -67,17 +67,18 @@ function cards(a: Analytics): Card[] {
   if (s.ok) {
     const { current: c, previous: p, daily } = s.data;
     out.push(
-      { label: "Refunds", value: rupees(c.refunds), now: c.refunds, before: p?.refunds ?? null, goodWhenUp: false, spark: daily.map((d) => d.refunds), hint: `${c.refundCount} ${c.refundCount === 1 ? "order" : "orders"}` },
-      { label: "Failed payments", value: n(c.failed), now: c.failed, before: p?.failed ?? null, goodWhenUp: false, spark: daily.map((d) => d.failed), hint: `${n(c.pending)} unfinished` });
-  } else out.push({ label: "Refunds", unavailable: true }, { label: "Failed payments", unavailable: true });
+      { label: "Refunds", value: money(c.refunds), now: c.refunds, before: p?.refunds ?? null, goodWhenUp: false, spark: daily.map((d) => d.refunds), hint: `${c.refundCount} ${c.refundCount === 1 ? "order" : "orders"}` },
+      { label: "Failed payments", value: n(c.failed), now: c.failed, before: p?.failed ?? null, goodWhenUp: false, spark: daily.map((d) => d.failed), hint: "unsuccessful" },
+      { label: "Pending payments", value: n(c.pending), now: c.pending, before: p?.pending ?? null, goodWhenUp: false, spark: daily.map((d) => d.pending) },
+      { label: "Discount given", value: money(c.discount), now: c.discount, before: p?.discount ?? null, spark: daily.map((d) => d.discount) });
+  } else out.push(...["Refunds", "Failed payments", "Pending payments", "Discount given"].map((label) => ({ label, unavailable: true as const })));
   const counted = (label: string, sec: Section<{ current: number; previous: number | null; spark: number[] }>, hint?: string): Card =>
     sec.ok ? { label, value: n(sec.data.current), now: sec.data.current, before: sec.data.previous, spark: sec.data.spark, hint } : { label, unavailable: true };
-  out.push(counted("Downloads", a.downloads, "by last download"), counted("Wishlist adds", a.wishlist));
+  out.push(counted("Downloads", a.downloads, "by last download"));
   if (a.offers.ok) {
     const o = a.offers.data;
-    out.push({ label: "Offer redemptions", value: n(o.redemptions.current), now: o.redemptions.current, before: o.redemptions.previous, spark: o.redemptions.spark },
-      { label: "Offer discount given", value: rupees(o.discount.current), now: o.discount.current, before: o.discount.previous, spark: o.discount.spark });
-  } else out.push({ label: "Offer redemptions", unavailable: true }, { label: "Offer discount given", unavailable: true });
+    out.push({ label: "Offer redemptions", value: n(o.redemptions.current), now: o.redemptions.current, before: o.redemptions.previous, spark: o.redemptions.spark });
+  } else out.push({ label: "Offer redemptions", unavailable: true });
   return out;
 }
 
@@ -118,19 +119,19 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
 
     <div className="grid gap-5">
       <Panel title="Revenue and orders over time" note={a.weekly ? "Weekly totals, Monday to Sunday." : "Daily totals."}>
-        <Show s={a.sales}>{(d) => <Chart kind="bar" ariaLabel="Revenue and orders over time" height={320}
+        <Show s={a.sales}>{(d) => <Chart kind="combo" ariaLabel="Revenue and orders over time" height={320}
           labels={d.buckets.map(fmtBucket)}
-          series={[{ label: "Revenue", data: d.buckets.map((b) => b.revenue), format: "money", as: "bar" },
-            ...(range.compare && d.previousBuckets.length ? [{ label: "Revenue, previous period", data: d.buckets.map((_, i) => d.previousBuckets[i]?.revenue ?? 0), format: "money" as const, as: "line" as const, dashed: true, colour: "#7a7a88" }] : []),
-            { label: "Orders", data: d.buckets.map((b) => b.orders), format: "count", as: "line", axis: "right", colour: "#299637" }]} />}</Show>
+          series={[{ label: "Orders", data: d.buckets.map((b) => b.orders), format: "count", as: "bar", axis: "left", colour: "#299637" },
+            { label: "Revenue", data: d.buckets.map((b) => b.revenue), format: "money", as: "line", axis: "right" },
+            ...(range.compare && d.previousBuckets.length ? [{ label: "Revenue, previous period", data: d.buckets.map((_, i) => d.previousBuckets[i]?.revenue ?? 0), format: "money" as const, as: "line" as const, axis: "right" as const, dashed: true, colour: "#7a7a88" }] : [])]} />}</Show>
       </Panel>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid items-start gap-5 lg:grid-cols-2">
         <Panel title="Top products" note="By revenue. Share is of all product revenue in the range.">
           <Show s={a.products}>{(rows) => rows.length ? <>
             <Chart kind="bar" horizontal legend={false} ariaLabel="Top products by revenue" height={Math.max(180, rows.length * 34)} labels={rows.map((r) => r.title.length > 28 ? `${r.title.slice(0, 27)}…` : r.title)} series={[{ label: "Revenue", data: rows.map((r) => r.revenue), format: "money" }]} />
             <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="text-ink-soft"><th className="py-1 pr-2 font-medium">{WORDS.itemTitle}</th><th className="px-2 font-medium">Units</th><th className="px-2 text-right font-medium">Revenue</th><th className="pl-2 text-right font-medium">Share</th></tr></thead>
-              <tbody>{rows.map((r) => <tr key={r.slug} className="border-t border-line"><td className="py-2 pr-2"><Link className="underline" href={`${WORDS.editBase}/${encodeURIComponent(r.slug)}`}>{r.title}</Link></td><td className="px-2">{n(r.units)}</td><td className="px-2 text-right font-medium">{rupees(r.revenue)}</td><td className="pl-2 text-right">{r.share.toFixed(1)}%</td></tr>)}</tbody></table></div></>
+              <tbody>{rows.map((r) => <tr key={r.slug} className="border-t border-line"><td className="py-2 pr-2"><Link className="underline" href={`${WORDS.editBase}/${encodeURIComponent(r.slug)}`}>{r.title}</Link></td><td className="px-2">{n(r.units)}</td><td className="px-2 text-right font-medium">{money(r.revenue)}</td><td className="pl-2 text-right">{r.share.toFixed(1)}%</td></tr>)}</tbody></table></div></>
             : <Empty>No sales in this range.</Empty>}</Show>
         </Panel>
         <Panel title="Revenue by category">
@@ -138,7 +139,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         </Panel>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid items-start gap-5 lg:grid-cols-2">
         <Panel title="Sales by day of week" note="Paid orders, India time. Darker bars are busier.">
           <Show s={a.timing}>{(t) => t.weekday.some((w) => w.orders) ? <Chart kind="bar" heat legend={false} ariaLabel="Paid orders by day of week" height={240} labels={weekdays} series={[{ label: "Orders", data: t.weekday.map((w) => w.orders) }]} /> : <Empty>No paid orders in this range.</Empty>}</Show>
         </Panel>
@@ -147,10 +148,10 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         </Panel>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid items-start gap-5 lg:grid-cols-2">
         <Panel title="Payment outcomes" note="Orders started in this range, by where they ended up.">
-          <Show s={a.sales}>{(d) => { const c = d.current; const rows = [["Paid", c.paid], ["Failed", c.failed], ["Unfinished", c.pending], ["Refunded", c.refundedStatus]] as const;
-            return c.started ? <Chart kind="doughnut" ariaLabel="Payment outcomes" height={240} labels={rows.map((r) => r[0])} series={[{ label: "Orders", data: rows.map((r) => r[1]) }]} /> : <Empty>No orders started in this range.</Empty>; }}</Show>
+          <Show s={a.sales}>{(d) => { const c = d.current; const rows = [["Paid", c.paid], ["Failed", c.failed], ["Pending", c.pending], ["Refunded", c.refundedStatus]] as const;
+            return c.started ? <Chart kind="bar" legend={false} ariaLabel="Payment outcomes" height={240} labels={rows.map((r) => r[0])} series={[{ label: "Orders", data: rows.map((r) => r[1]) }]} /> : <Empty>No orders started in this range.</Empty>; }}</Show>
           <div className="mt-4 border-t border-line pt-4 text-sm"><p className="font-medium">Delivery recovery queue</p>
             <Show s={a.recovery}>{(r) => <p className="mt-1 text-ink-soft" data-testid="recovery">{r.awaiting + r.email + r.payments === 0 ? "Nothing needs attention right now."
               : `${r.awaiting} paid but not delivered, ${r.email} emails waiting, ${r.payments} payments to reconcile.`} <Link className="underline" href="/admin/platform/delivery">Open delivery recovery</Link></p>}</Show></div>
@@ -161,14 +162,14 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         </Panel>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid items-start gap-5 lg:grid-cols-2">
         <Panel title="Offers" note="Offers used on paid orders in this range.">
           <Show s={a.offers}>{(o) => o.rows.length ? <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="text-ink-soft"><th className="py-1 pr-2 font-medium">Offer</th><th className="px-2 font-medium">Uses</th><th className="px-2 font-medium">Discount given</th><th className="pl-2 text-right font-medium">Order revenue</th></tr></thead>
-            <tbody>{o.rows.map((r) => <tr key={r.id} className="border-t border-line"><td className="py-2 pr-2">{r.name}</td><td className="px-2">{n(r.uses)}</td><td className="px-2">{rupees(r.given)}</td><td className="pl-2 text-right font-medium">{rupees(r.revenue)}</td></tr>)}</tbody></table></div>
+            <tbody>{o.rows.map((r) => <tr key={r.id} className="border-t border-line"><td className="py-2 pr-2">{r.name}</td><td className="px-2">{n(r.uses)}</td><td className="px-2">{money(r.given)}</td><td className="pl-2 text-right font-medium">{money(r.revenue)}</td></tr>)}</tbody></table></div>
             : <Empty>No offers used in this range. <Link className="underline" href="/admin/offers">Manage offers</Link></Empty>}</Show>
         </Panel>
         <Panel title={`${WORDS.itemsTitle} with no sales`} note={`Live ${WORDS.items} nobody bought in this range.`}>
-          <Show s={a.lowSellers}>{(l) => l.rows.length ? <><div className="overflow-x-auto"><table className="w-full text-left text-sm"><tbody>{l.rows.map((r) => <tr key={r.slug} className="border-t border-line first:border-0"><td className="py-2 pr-2"><Link className="underline" href={`${WORDS.editBase}/${encodeURIComponent(r.slug)}`}>{r.title}</Link></td><td className="text-right">{rupees(r.price)}</td></tr>)}</tbody></table></div>
+          <Show s={a.lowSellers}>{(l) => l.rows.length ? <><div className="overflow-x-auto"><table className="w-full text-left text-sm"><tbody>{l.rows.map((r) => <tr key={r.slug} className="border-t border-line first:border-0"><td className="py-2 pr-2"><Link className="underline" href={`${WORDS.editBase}/${encodeURIComponent(r.slug)}`}>{r.title}</Link></td><td className="text-right">{money(r.price)}</td></tr>)}</tbody></table></div>
             {l.total > l.rows.length && <p className="mt-2 text-sm text-ink-soft">Showing {l.rows.length} of {n(l.total)}. <Link className="underline" href={WORDS.editBase}>See all {WORDS.items}</Link></p>}</>
             : <Empty>Every live {WORDS.item} sold at least once.</Empty>}</Show>
         </Panel>
@@ -177,7 +178,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
       <Panel title="Recent orders" note="Latest orders started in this range, any status.">
         <Show s={a.recent}>{(rows) => rows.length ? <><div className="overflow-x-auto"><table className="w-full min-w-[520px] text-left text-sm"><thead><tr className="text-ink-soft">{["Order", "Customer", "Total", "Status", "Placed"].map((h) => <th key={h} className="py-1 pr-3 font-medium">{h}</th>)}</tr></thead>
           <tbody>{rows.map((o) => <tr key={o.id} className="border-t border-line"><td className="py-2 pr-3"><Link className="underline" href={`/admin/orders/${encodeURIComponent(o.id)}`}>{o.id.slice(0, 10)}…</Link></td>
-            <td className="pr-3">{o.name || "—"}<br /><span className="text-ink-soft">{o.email}</span></td><td className="pr-3">{rupees(o.total)}</td><td className="pr-3">{o.status.replace("_", " ")}</td><td>{o.at}</td></tr>)}</tbody></table></div>
+            <td className="pr-3">{o.name || "—"}<br /><span className="text-ink-soft">{o.email}</span></td><td className="pr-3">{money(o.total)}</td><td className="pr-3">{o.status.replace("_", " ")}</td><td>{o.at}</td></tr>)}</tbody></table></div>
           <p className="mt-3 text-sm"><Link className="underline" href={`/admin/orders?from=${range.from}&to=${range.to}`}>See every order in this range</Link></p></>
           : <Empty>No orders in this range.</Empty>}</Show>
       </Panel>

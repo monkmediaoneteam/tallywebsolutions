@@ -46,10 +46,15 @@ export const sql = new Proxy((...args: unknown[]) => {
         });
       };
     }
+    // Neon 0.10 accepts parameterised text through the callable client; it has
+    // no .query method. Keep the same explicit-query API as our local adapter.
+    if (key === 'query') return remote().bind(undefined);
     const value = Reflect.get(remote(), key);
     return typeof value === 'function' ? value.bind(remote()) : value;
   },
-}) as ReturnType<typeof neon<false, false>>;
+}) as ReturnType<typeof neon<false, false>> & {
+  query: (text: string, parameters?: unknown[]) => Promise<unknown[]>;
+};
 
 export type Book = {
   slug: string;

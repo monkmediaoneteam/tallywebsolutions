@@ -29,7 +29,7 @@ assert.equal(cleanValue(field('rich-text', 'text_color'), '', true), '', 'an emp
 for (const bad of ['javascript:alert(1)', 'http://x.com', '//evil.com', 'data:text/html,x', '/a b', '/a"onload=1', 'mailto:a@b.c']) assert.throws(() => cleanValue(field('rich-text', 'button_url'), bad, true), SectionError, `url ${bad}`);
 for (const ok of ['/search?x=1', 'https://example.com/a?b=1', '']) assert.equal(cleanValue(field('rich-text', 'button_url'), ok, true), ok);
 for (const bad of ['/assets/x.png', 'http://x.com/a.png', 'javascript:1', '/api/other/1', '//x.com/a.png']) assert.throws(() => cleanValue(field('image-overlay', 'image'), bad, true), SectionError, `image ${bad}`);
-for (const ok of ['/api/media/abc', 'https://cdn.example.com/a.png', '']) assert.equal(cleanValue(field('image-overlay', 'image'), ok, true), ok);
+for (const ok of ['/api/media/123e4567-e89b-42d3-a456-426614174000', 'https://cdn.example.com/a.png', '']) assert.equal(cleanValue(field('image-overlay', 'image'), ok, true), ok);
 for (const bad of [-1, 91, 33.5, 'x', NaN, null]) assert.throws(() => cleanValue(field('image-overlay', 'overlay_opacity'), bad, true), SectionError, `range ${bad}`);
 assert.throws(() => cleanValue(field('image-overlay', 'height_desktop'), '1000px', true), SectionError, 'selects only accept their options');
 assert.throws(() => cleanValue(field('image-overlay', 'content_position'), 'middle', true), SectionError, '3x3 positions only');

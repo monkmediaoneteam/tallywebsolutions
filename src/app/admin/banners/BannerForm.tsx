@@ -29,6 +29,7 @@ export default function BannerForm({ banner, sections, sectionKey, returnTo, don
   const [title, setTitle] = useState(banner?.title ?? "");
   const [link, setLink] = useState(banner?.link_url ?? "");
   const [image, setImage] = useState(banner?.image_url ?? "");
+  const [mobileImage, setMobileImage] = useState(banner?.mobile_image_url ?? "");
   const [imageKey, setImageKey] = useState(0);
   const s = sections.find((x) => x.key === key) ?? sections[0];
   return <form action="/api/admin/platform/content" method="post" className="grid gap-5 sm:grid-cols-2">
@@ -52,9 +53,9 @@ export default function BannerForm({ banner, sections, sectionKey, returnTo, don
       {s && <span className="mt-1 block text-xs text-ink-soft">{POSITIONS[s.position].label}. {LAYOUTS[s.layout]}, up to {s.max}. Image {sizeLabel(s.width, s.height)}.</span>}</label>
 
     {s && <div className="grid gap-5 sm:col-span-2 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-      <ImageField key={`img-${key}-${imageKey}`} name="image_url" label="Banner image (required)" value={image} ratio={ratio(s.width, s.height)} expect={{ width: s.width, height: s.height }}
+      <ImageField crop key={`img-${key}-${imageKey}`} name="image_url" label="Banner image (required)" value={image} onChange={setImage} ratio={ratio(s.width, s.height)} expect={{ width: s.width, height: s.height }}
         hint={`This section uses ${sizeLabel(s.width, s.height)}. JPEG, PNG or WebP, up to 5 MB. Put any words into the image itself.`} />
-      <ImageField key={`mob-${key}`} name="mobile_image_url" label="Phone image (optional)" value={banner?.mobile_image_url ?? ""} ratio={ratio(s.mobileWidth, s.mobileHeight)}
+      <ImageField crop key={`mob-${key}`} name="mobile_image_url" label="Phone image (optional)" value={mobileImage} onChange={setMobileImage} ratio={ratio(s.mobileWidth, s.mobileHeight)}
         expect={{ width: s.mobileWidth, height: s.mobileHeight }} hint={`Shown on phones instead, ${sizeLabel(s.mobileWidth, s.mobileHeight)}. Leave empty to use the main image.`} />
     </div>}
 
