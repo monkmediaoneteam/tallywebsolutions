@@ -422,7 +422,7 @@ async function checkHomepage() {
   const shell = renderToStaticMarkup(React.createElement(Shell, { active: "orders", title: "Orders" }, "body"));
   for (const href of ["/admin/orders", "/admin/categories", "/admin/platform/collections", "/admin/banners", "/admin/platform/delivery"])
     assert.ok(shell.includes(`href="${href.replace("&", "&amp;")}"`), href);
-  assert.match(shell, /aria-current="page"[^>]*>[^<]*Orders/);
+  assert.match(shell, /aria-current="page"[^>]*>(?:<svg[\s\S]*?<\/svg>)?Orders/);
 }
 
 Promise.resolve().then(checkPausedSelection).then(checkRetries).then(checkCatalogue).then(checkHomepage).then(() => console.log("Reading room checks passed: paused selection, cart, checkout, catalogue, video validation, banners, header, admin shell."))
