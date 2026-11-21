@@ -6,7 +6,7 @@ import { mergeSections, sectionKeyOf, type BannerSection, type Position } from "
 
 export type HomeInput = { books: PublicBook[]; categories: Category[]; modules: ContentModule[]; bestsellers: string[];
   authors: { id: string; name: string; photo_url: string | null }[]; now: Date };
-export type Banner = { id: string; title: string; body: string | null; subtitle: string | null; image: string | null; mobileImage: string | null; href: string | null; label: string | null; theme: string; placement: string };
+export type Banner = { id: string; title: string; body: string | null; subtitle: string | null; image: string | null; mobileImage: string | null; href: string | null; label: string | null; theme: string; placement: string; fit: "cover" | "contain" | null };
 export type Promo = { id: string; title: string; href: string | null; image: string | null; theme: string; size: "large" | "small"; books: PublicBook[] };
 type RailKey = "bestsellers" | "new" | "offers" | "soon";
 export type Home = ReturnType<typeof buildHome>;
@@ -16,7 +16,8 @@ export type PlacedSection = { section: BannerSection; banners: Banner[] };
 
 function toBanner(m: ContentModule): Banner {
   return { id: m.id, title: m.title, body: m.body, subtitle: str(m.payload.subtitle), image: contentUrl(m.image_url), mobileImage: contentUrl(m.mobile_image_url),
-    href: contentUrl(m.link_url), label: m.link_label, theme: str(m.payload.theme) ?? "yellow", placement: sectionKeyOf(m.payload.placement) };
+    href: contentUrl(m.link_url), label: m.link_label, theme: str(m.payload.theme) ?? "yellow", placement: sectionKeyOf(m.payload.placement),
+    fit: m.payload.fit === "contain" || m.payload.fit === "cover" ? m.payload.fit : null };
 }
 
 // Every switched-on banner section with its live banners (published, in their dates, with an image), in admin order,

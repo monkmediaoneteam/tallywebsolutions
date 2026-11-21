@@ -23,8 +23,9 @@ const home = buildHome({ books, categories, now, bestsellers: ['ghost', 'd', 'a'
 
 const at = (key) => home.sections.find((p) => p.section.key === key);
 assert.deepEqual(at('hero').banners.map(b => b.id), ['b0', 'b1'], 'ordered, expired and imageless banners dropped, side banners not in the hero');
-assert.deepEqual(at('side').banners.map(b => b.id), ['s1', 's2'], 'old side-1/side-2 banners fill the side section, imageless ones skipped');
-assert.equal(at('side').banners[0].image, '/api/media/x');
+// Side cards are off by default: the homepage top is one full-width hero, and no side column is drawn.
+assert.equal(at('side'), undefined, 'side cards are off by default');
+assert.equal(sectionsAt(home.sections, 'home-top-side').length, 0, 'no side column by default');
 assert.deepEqual(sectionsAt(home.sections, 'home-top-main').map(p => p.section.key), ['hero']);
 // Product pages and search/category pages get the banners placed in their sections.
 const pageMods = [mod('p0', 'banner', { sort: 1, payload: { placement: 'product' } }), mod('p1', 'banner', { sort: 2, image_url: '/api/media/p1', payload: { placement: 'product' } }),

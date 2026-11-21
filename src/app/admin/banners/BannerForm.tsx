@@ -17,6 +17,7 @@ export const TEMPLATES = [
 
 // Payload settings this form does not edit; sent back unchanged so saving keeps them.
 const KEPT_PAYLOAD = ["attribution", "collection_slug", "author_id", "video_url", "theme", "size", "category_slug", "subtitle"];
+// How a banner image fits its frame when its shape differs from the section: crop it, show it whole, or follow the section.
 
 const input = "field-input mt-1";
 
@@ -59,6 +60,13 @@ export default function BannerForm({ banner, sections, sectionKey, returnTo, don
         expect={{ width: s.mobileWidth, height: s.mobileHeight }} hint={`Shown on phones instead, ${sizeLabel(s.mobileWidth, s.mobileHeight)}. Leave empty to use the main image.`} />
     </div>}
 
+    <label className="text-sm sm:col-span-2">How the image fits its frame
+      <select name="fit" className={input} defaultValue={String(banner?.payload?.fit ?? "")}>
+        <option value="">Use the section setting</option>
+        <option value="cover">Fill the frame: crop the edges (best for photos)</option>
+        <option value="contain">Show the whole image: empty margins (best for artwork with text)</option>
+      </select>
+      <span className="mt-1 block text-xs text-ink-soft">Choose "show the whole image" when the banner has words near its edges, so nothing gets cut off.</span></label>
     <label className="text-sm sm:col-span-2">Link when clicked (optional)<input name="link_url" maxLength={2000} className={input} value={link} onChange={(e) => setLink(e.target.value)} placeholder="/search?offer=1 or https://..." /></label>
     <label className="text-sm">Starts (India time, optional)<input name="publish_at" type="datetime-local" className={input} defaultValue={toIndiaInput(banner?.publish_at ?? null)} /></label>
     <label className="text-sm">Ends (India time, optional)<input name="ends_at" type="datetime-local" className={input} defaultValue={toIndiaInput(banner?.ends_at ?? null)} /></label>

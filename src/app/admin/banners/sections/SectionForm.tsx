@@ -9,24 +9,32 @@ const num = (name: string, label: string, value: number, set: (n: number) => voi
     onChange={(e) => set(e.target.value === "" ? NaN : Number(e.target.value))} />{hint && <span className="mt-1 block text-xs text-ink-soft">{hint}</span>}</label>;
 
 // A schematic of the section: how many frames, in which layout, in the shape of the image size chosen.
-function Preview({ layout, max, columns, width, height, fit }: { layout: Layout; max: number; columns: number; width: number; height: number; fit: string }) {
+function Preview({ layout, max, columns, width, height, fit, images }: { layout: Layout; max: number; columns: number; width: number; height: number; fit: string; images: { src: string; title: string }[] }) {
   const shape = width > 0 && height > 0 ? `${width} / ${height}` : "16 / 5";
   const n = Math.max(1, Math.min(layout === "single" || layout === "carousel" ? 1 : max || 1, layout === "grid" ? columns * 2 : 4));
-  const box = (i: number) => <div key={i} className="grid place-items-center rounded-lg border border-dashed border-line-2 bg-bg-2 text-[11px] text-ink-soft" style={{ aspectRatio: shape }}>
-    {width}×{height}<span className="sr-only"> frame {i + 1}</span></div>;
+  const frame = (i: number) => {
+    const img = images[i];
+    return img
+      ? <div key={i} className="overflow-hidden rounded-lg border border-line bg-bg-2" style={{ aspectRatio: shape }}>
+          <img src={img.src} alt={img.title} className="h-full w-full" style={{ objectFit: fit === "contain" ? "contain" : "cover" }} />
+        </div>
+      : <div key={i} className="grid place-items-center rounded-lg border border-dashed border-line-2 bg-bg-2 p-2 text-center text-[11px] text-ink-soft" style={{ aspectRatio: shape }}>
+          Empty slot {i + 1}<span className="block text-[10px]">{width}×{height}</span>
+        </div>;
+  };
   return <div className="rounded-xl border border-line bg-white p-4" aria-label="Layout preview" role="img">
-    <p className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-soft">Preview</p>
+    <p className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-soft">Preview with your banners</p>
     <div className="relative grid gap-2" style={layout === "grid" ? { gridTemplateColumns: `repeat(${columns || 1}, minmax(0, 1fr))` } : undefined}>
-      {Array.from({ length: n }, (_, i) => box(i))}
+      {Array.from({ length: n }, (_, i) => frame(i))}
       {layout === "carousel" && <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1" aria-hidden="true">
         {[0, 1, 2].map((i) => <span key={i} className={`h-1.5 rounded-full bg-ink-soft/60 ${i === 0 ? "w-4" : "w-1.5"}`} />)}</div>}
     </div>
-    <p className="mt-3 text-xs text-ink-soft">{layout === "carousel" ? `Rotating, up to ${max} images.` : layout === "single" ? "One image." : layout === "grid" ? `${columns} across, up to ${max} images.` : `Stacked, up to ${max} images.`} Images are {fit === "contain" ? "shown whole" : "cropped to fill the frame"}.</p>
+    <p className="mt-3 text-xs text-ink-soft">{images.length} of {max} live {images.length === 1 ? "banner" : "banners"} {images.length ? "shown here" : "yet"}. {layout === "carousel" ? "Rotating." : layout === "single" ? "One image." : layout === "grid" ? `${columns} across.` : "Stacked."} Images are {fit === "contain" ? "shown whole" : "cropped to fill the frame"}.</p>
   </div>;
 }
 
 // One banner section's settings. Saving a built-in section stores the admin's version; Reset (on the edit page) brings back the default.
-export default function SectionForm({ section, isNew, returnTo, doneTo }: { section: BannerSection; isNew?: boolean; returnTo: string; doneTo?: string }) {
+export default function SectionForm({ section, isNew, returnTo, doneTo, images = [] }: { section: BannerSection; isNew?: boolean; returnTo: string; doneTo?: string; images?: { src: string; title: string }[] }) {
   const [layout, setLayout] = useState<Layout>(section.layout);
   const [max, setMax] = useState(section.max);
   const [columns, setColumns] = useState(section.columns);
@@ -95,6 +103,6 @@ export default function SectionForm({ section, isNew, returnTo, doneTo }: { sect
       </div>
     </div>
 
-    <aside className="lg:sticky lg:top-6 lg:self-start"><Preview layout={layout} max={max} columns={columns} width={width} height={height} fit={fit} /></aside>
+    <aside className="lg:sticky lg:top-6 lg:self-start"><Preview layout={layout} max={max} columns={columns} width={width} height={height} fit={fit} images={images} /></aside>
   </form>;
 }

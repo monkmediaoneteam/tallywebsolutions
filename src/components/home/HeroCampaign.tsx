@@ -10,7 +10,7 @@ import ProductTile from "../ProductTile";
 type HeroCover = { slug: string; title: string; cover: string | null };
 
 export const DEFAULT_SLIDE: Banner = { id: "default", title: "Tally add-ons, delivered instantly", subtitle: "Digital downloads",
-  body: "TDL source code and GST add-ons for TallyPrime. Pay once, use with lifetime validity.", image: null, mobileImage: null, href: "/search", label: "Browse add-ons", theme: "forest", placement: "hero" };
+  body: "TDL source code and GST add-ons for TallyPrime. Pay once, use with lifetime validity.", image: null, mobileImage: null, href: "/search", label: "Browse add-ons", theme: "forest", placement: "hero", fit: null };
 
 // The last two words of a headline carry the brand gradient, so admin banners get it without markup.
 export function splitAccent(title: string): [string, string] {

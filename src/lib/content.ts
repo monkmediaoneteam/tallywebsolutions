@@ -90,7 +90,8 @@ export function validateContent(section: ContentSection, input: Record<string, u
       if (!Array.isArray(value) || value.length > 8 || value.some(s => typeof s !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s))) throw new ContentError("Choose up to 8 categories.");
     } else if (key === "book_slugs") {
       if (!Array.isArray(value) || value.length > 100 || value.some(s => typeof s !== "string" || !/^[a-z0-9-]{1,120}$/.test(s))) throw new ContentError("Invalid module product selection.");
-    } else textField(value, 4000);
+    } else if (key === "fit") { if (!["", "cover", "contain"].includes(String(value))) throw new ContentError("Choose how this image fits: fill the frame, show it whole, or use the section setting."); }
+    else textField(value, 4000);
   }
   return { title, status: status as ContentModule["status"], publish_at: publishAt, ends_at: endsAt, sort, type: String(type), slug,
     body: textField(input.body ?? input.bio ?? input.description, 20000) || null,
