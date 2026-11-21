@@ -53,7 +53,6 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
   const enabled = flag("COMMERCE_ENABLED");
   const url = `${siteUrl()}/products/${encodeURIComponent(book.slug)}`;
   const category = categories.find((c) => c.slug === book.category_slug);
-  const author = book.author_slug ? content.authors.find((a) => a.id === book.author_slug) : undefined;
   const banners = bannerSections(content.modules);
   let sample: string | null = null;
   try { sample = safeUrl(book.sample_url); } catch { /* A malformed sample is not offered. */ }
@@ -69,7 +68,6 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
     (paragraphs.length || book.description) && { id: "about", label: "About this add-on", content: <div className="prose">{(paragraphs.length ? paragraphs : [book.description!]).map((p, i) => <p key={i}>{p}</p>)}</div> },
     view.highlights.length && { id: "contents", label: "Contents", content: <ul className="contents-list">{view.highlights.map((h, i) => <li key={i}>{h}</li>)}</ul> },
     facts.length && { id: "details", label: "More details", content: <table className="catalogue"><tbody>{facts.map(([k, v]) => <tr key={k}><th scope="row">{k}</th><td>{v}</td></tr>)}</tbody></table> },
-    author && { id: "author", label: "About the developer", content: <div className="prose"><p><strong>{author.name}</strong></p>{author.bio && <p>{author.bio}</p>}<p><Link className="text-link" href={`/authors/${encodeURIComponent(author.id)}`}>All add-ons by {author.name}</Link></p></div> },
   ].filter(Boolean) as { id: string; label: string; content: React.ReactNode }[];
   return <div className="product-page" data-book-page>
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(bookJsonLd(book, url, view.saleable, now)) }} />
@@ -84,7 +82,7 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
         <div className="product-info enter">
           <div className="title-row"><h1>{book.title}</h1><div className="title-actions"><WishlistButton slug={book.slug} title={book.title} variant="page" /><ShareButton title={book.title} url={url} /></div></div>
           {book.subtitle && <p className="product-subtitle">{book.subtitle}</p>}
-          {book.authorship && !isStoreOwned(book.authorship) && <p className="product-author">by {book.author_slug ? <Link href={`/authors/${encodeURIComponent(book.author_slug)}`}>{book.authorship}</Link> : book.authorship}</p>}
+          {book.authorship && !isStoreOwned(book.authorship) && <p className="product-author">by {book.authorship}</p>}
           <ul className="tag-row">{category && <li><Link className="chip" href={`/category/${category.slug}`}>{category.name}</Link></li>}
             {book.file_format && <li><span className="chip">{book.file_format}</span></li>}
           </ul>

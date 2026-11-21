@@ -34,26 +34,29 @@ export default function BannerSectionView({ placed, wrap = "", eager = false, fa
   const [hover, setHover] = useState(false);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  const empty = !banners.length;
-  const items: Item[] = empty ? (section.empty === "placeholder" && !fallback ? [{ key: "empty", image: null, mobileImage: null, href: null, alt: "" }] : []) : banners.map(toItem);
+  const visible = section.enabled ? banners.slice(0, section.max) : [];
+  const empty = !visible.length;
+  const items: Item[] = empty ? (section.empty === "placeholder" && !fallback ? [{ key: "empty", image: null, mobileImage: null, href: null, alt: "" }] : []) : visible.map(toItem);
   const carousel = section.layout === "carousel" && items.length > 1;
   useEffect(() => {
-    if (!carousel || paused || hover || reduced || !section.autoplay) return;
+    if (!section.enabled || !carousel || paused || hover || reduced !== false || !section.autoplay) return;
     const timer = setInterval(() => setIndex((i) => (i + 1) % items.length), section.autoplay * 1000);
     return () => clearInterval(timer);
-  }, [carousel, paused, hover, reduced, section.autoplay, items.length]);
+  }, [section.enabled, carousel, paused, hover, reduced, section.autoplay, items.length]);
+  if (!section.enabled) return null;
   if (empty && section.empty === "placeholder" && fallback) return wrap ? <div className={wrap}>{fallback}</div> : <>{fallback}</>;
   if (!items.length) return null;
 
   const shown = section.layout === "single" ? items.slice(0, 1) : items;
   const style = { "--ratio": ratio(section.width, section.height), "--mratio": ratio(section.mobileWidth, section.mobileHeight), "--cols": section.columns, "--fit": section.fit } as CSSProperties;
   const go = (step: number) => setIndex((i) => (i + step + items.length) % items.length);
-  const body = <section className={`banner-section layout-${section.layout}`} style={style} aria-label={section.name}
-    aria-roledescription={carousel ? "carousel" : undefined} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
-    {shown.map((item, i) => <Art key={item.key} item={item} eager={eager && i === 0} hidden={carousel ? i !== index : undefined} />)}
+  const body = <section className={`banner-section layout-${section.layout}`} style={style} data-section={section.key} data-position={section.position} aria-label={section.name}
+    aria-roledescription={carousel ? "carousel" : undefined} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+    onFocusCapture={() => setHover(true)} onBlurCapture={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setHover(false); }}>
+    {shown.map((item, i) => <Art key={item.key} item={item} eager={eager && i === 0} hidden={carousel ? i !== index % items.length : undefined} />)}
     {carousel && <div className="banner-controls">
       <button type="button" className="round-btn" onClick={() => go(-1)} aria-label="Previous banner"><ChevronLeft size={17} aria-hidden="true" /></button>
-      <div className="hero-dots">{items.map((item, i) => <button key={item.key} type="button" aria-label={`Show banner ${i + 1}`} aria-current={i === index ? "true" : undefined} onClick={() => setIndex(i)} />)}</div>
+      <div className="hero-dots">{items.map((item, i) => <button key={item.key} type="button" aria-label={`Show banner ${i + 1}`} aria-current={i === index % items.length ? "true" : undefined} onClick={() => setIndex(i)} />)}</div>
       <button type="button" className="round-btn" onClick={() => go(1)} aria-label="Next banner"><ChevronRight size={17} aria-hidden="true" /></button>
       {mounted && !reduced && section.autoplay > 0 && <button type="button" className="round-btn" onClick={() => setPaused((p) => !p)} aria-label={paused ? "Play banners" : "Pause banners"}>
         {paused ? <Play size={15} aria-hidden="true" /> : <Pause size={15} aria-hidden="true" />}</button>}

@@ -3,7 +3,7 @@
 //   node scripts/check-live.mjs https://<site>
 import { pathToFileURL } from 'node:url';
 
-const PAGES = ['/', '/search', '/cart', '/wishlist', '/login', '/publish', '/privacy', '/terms', '/refund-policy', '/delivery-policy'];
+const PAGES = ['/', '/search', '/cart', '/wishlist', '/login', '/privacy', '/terms', '/refund-policy', '/delivery-policy'];
 
 export async function runLiveChecks(base, fetchImpl = fetch) {
   const failures = [], passed = [];

@@ -12,8 +12,6 @@ import CategoryTiles from "@/components/home/CategoryTiles";
 import Featured from "@/components/home/Featured";
 import LookInside from "@/components/home/LookInside";
 import LanguageStrip from "@/components/home/LanguageStrip";
-import AuthorChips from "@/components/home/AuthorChips";
-import PublishBand from "@/components/home/PublishBand";
 import FaqGrid from "@/components/home/FaqGrid";
 import HomeSide from "@/components/home/HomeSide";
 import ShopStrip from "@/components/home/ShopStrip";
@@ -66,9 +64,6 @@ export default async function Home() {
       }
       case "look-inside": return <LookInside books={books} heading={str(o.heading)} subheading={str(o.subheading)} limit={num(o.limit, 8)} />;
       case "languages": return <LanguageStrip languages={home.languages} heading={str(o.heading)} />;
-      case "developers": return <AuthorChips authors={home.authors.slice(0, num(o.limit, 10))} heading={str(o.heading)} />;
-      case "publish":
-        return <PublishBand covers={covers} copy={{ eyebrow: str(o.eyebrow), heading: str(o.heading), description: str(o.description), buttonLabel: str(o.button_label), buttonUrl: str(o.button_url) }} />;
       case "faq":
         return <FaqGrid items={blocks.map((b) => ({ question: str(b.settings.question), answer: str(b.settings.answer) })).filter((x) => x.question)} heading={str(o.heading)} columns={Number(o.columns) || 2} />;
       case "image-overlay": return <ImageOverlay settings={o} />;

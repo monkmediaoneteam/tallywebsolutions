@@ -27,7 +27,8 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const DAY_MS = 86400000;
 export const shiftDay = (day: string, by: number) => new Date(Date.parse(`${day}T00:00:00Z`) + by * DAY_MS).toISOString().slice(0, 10);
 const spanDays = (from: string, to: string) => Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS) + 1;
-const isDay = (v: unknown): v is string => typeof v === "string" && DAY.test(v) && shiftDay(v, 0) === v;
+const isDay = (v: unknown): v is string => typeof v === "string" && DAY.test(v)
+  && Number.isFinite(Date.parse(`${v}T00:00:00Z`)) && shiftDay(v, 0) === v;
 /** Today's date in India (UTC+5:30). */
 export const todayIndia = (now: number = Date.now()) => new Date(now + 330 * 60000).toISOString().slice(0, 10);
 
@@ -145,7 +146,7 @@ const HI = (p: number) => `(($${p}::date + 1)::timestamp at time zone 'Asia/Kolk
 const IST = (col: string) => `(${col} at time zone 'Asia/Kolkata')`;
 
 type Rows = Record<string, unknown>[];
-const run = async (text: string, params: unknown[]) => (await (sql as unknown as { query: (t: string, p: unknown[]) => Promise<Rows> }).query(text, params)) as Rows;
+const run = async (text: string, params: unknown[]) => (await sql.query(text, params)) as Rows;
 
 /** Postgres "undefined table" (42P01) or "undefined column" (42703): the widget says not available instead of failing the page. */
 const isMissing = (e: unknown) => /^(42P01|42703)$/.test(String((e as { code?: string })?.code ?? "")) || /(relation|column) .* does not exist/.test(String((e as Error)?.message ?? ""));
@@ -193,7 +194,10 @@ export async function getAnalytics(r: Range): Promise<Analytics> {
       const daily = all.filter((d) => d.day >= rangeFrom);
       const before = all.filter((d) => d.day < rangeFrom);
       const weekly = isWeekly(r);
-      return { current: sumRows(daily), previous: prev ? sumRows(before) : null, daily, buckets: bucketize(daily, weekly), previousBuckets: prev ? bucketize(before, weekly) : [] };
+      // Align equal offsets before grouping: calendar weeks can start on different
+      // weekdays in the two periods, giving misleading partial-week comparisons.
+      const aligned = before.map((d) => ({ ...d, day: shiftDay(d.day, r.days) }));
+      return { current: sumRows(daily), previous: prev ? sumRows(before) : null, daily, buckets: bucketize(daily, weekly), previousBuckets: prev ? bucketize(aligned, weekly) : [] };
     }),
 
     // 2. New vs returning customers: a customer is new in the week of their first paid order ever, returning after that.
@@ -209,7 +213,10 @@ export async function getAnalytics(r: Range): Promise<Analytics> {
         union all select 'prev', null, count(distinct e) filter (where f >= $3::date)::int, count(distinct e) filter (where f < $3::date)::int from prv
         order by 1, 2`, [rangeFrom, rangeTo, prev?.from ?? rangeFrom, prev?.to ?? rangeFrom]);
       const cur = rows.find((x) => x.kind === "cur"), pv = rows.find((x) => x.kind === "prev");
-      return { weeks: rows.filter((x) => x.kind === "week").map((x) => ({ week: String(x.k), fresh: num(x.fresh), returning: num(x.returning) })),
+      const byWeek = new Map(rows.filter((x) => x.kind === "week").map((x) => [String(x.k), x]));
+      const weeks = [...new Set(daysBetween(rangeFrom, rangeTo).map(weekStart))]
+        .map((week) => ({ week, fresh: num(byWeek.get(week)?.fresh), returning: num(byWeek.get(week)?.returning) }));
+      return { weeks,
         fresh: num(cur?.fresh), returning: num(cur?.returning), previousFresh: prev ? num(pv?.fresh) : null, previousReturning: prev ? num(pv?.returning) : null };
     }),
 
@@ -257,7 +264,7 @@ export async function getAnalytics(r: Range): Promise<Analytics> {
         with sold as (select distinct i->>'slug' as slug from orders o cross join lateral jsonb_array_elements(o.items) i
           where ${REAL} and ${PAID} and ${PAID_AT} >= ${LO(1)} and ${PAID_AT} < ${HI(2)})
         select b.slug, b.title, b.price_inr::int as price, count(*) over ()::int as total from books b
-        where b.active and not exists (select 1 from sold s where s.slug = b.slug) order by b.sort, b.title limit 10`, [rangeFrom, rangeTo]);
+        where b.active and not exists (select 1 from sold s where s.slug = b.slug) order by b.sort, b.title limit 50`, [rangeFrom, rangeTo]);
       return { total: num(rows[0]?.total), rows: rows.map((x) => ({ slug: String(x.slug), title: String(x.title), price: num(x.price) })) };
     }),
 

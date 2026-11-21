@@ -10,6 +10,8 @@ export default function ActionForm({ children, ...props }: ComponentProps<"form"
   const [done, setDone] = useState("");
   const router = useRouter();
   async function submit(event: FormEvent<HTMLFormElement>) {
+    // ImageField may have cancelled this native submit while a crop/upload is pending.
+    if (event.defaultPrevented || event.nativeEvent.defaultPrevented) return;
     event.preventDefault();
     if (busy) return;
     const form = event.currentTarget;

@@ -105,6 +105,39 @@ export function mergeSections(modules: (StoredModule & { type: string })[]): Ban
 export const ratio = (w: number, h: number) => `${w} / ${h}`;
 export const sizeLabel = (w: number, h: number) => `${w} × ${h} px`;
 
+// Additional banner-only rules used by the content endpoint without changing other CMS types.
+export function bannerInputError(input: Record<string, unknown>, savedKey?: string): string | null {
+  const p = input.payload;
+  if (!p || typeof p !== "object" || Array.isArray(p)) return "Invalid banner settings.";
+  const payload = p as Record<string, unknown>;
+  if (input.type === "banner-section") {
+    if (savedKey !== undefined && payload.key !== savedKey) return "A saved section key cannot be changed.";
+    if (!Number.isInteger(Number(input.sort)) || Math.abs(Number(input.sort)) > 1000) return "Section order must be from -1000 to 1000.";
+    if (!["cover", "contain"].includes(String(payload.fit))) return "Choose how the image fits.";
+  }
+  if (input.type === "banner") {
+    if (typeof payload.placement !== "string" || !payload.placement) return "Choose an existing banner section.";
+    for (const field of ["image_url", "mobile_image_url"]) {
+      const value = input[field];
+      if (!value && field === "image_url") return "Add an image for this banner.";
+      if (!value && field === "mobile_image_url") continue;
+      if (typeof value !== "string" || !bannerImageUrl(value)) return "Use an HTTPS image, an uploaded image or built-in banner artwork.";
+    }
+  }
+  return null;
+}
+
+export function bannerImageUrl(value: string): boolean {
+  if (!value || value.length > 2000 || /[\\\s\x00-\x1f]/.test(value)) return false;
+  if (/^\/api\/media\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value)) return true;
+  if (/^\/banners\/[a-z0-9][a-z0-9_-]*\.(?:svg|png|jpe?g|webp)$/i.test(value)) return true;
+  // Existing granthsetu presets are shipped under assets; retain their exact paths.
+  if (/^\/assets\/banners\/(?:hero-botanical|side-deal|side-library)-(?:desktop|mobile)\.svg$/.test(value)) return true;
+  try { const url = new URL(value); return url.protocol === "https:" && !url.username && !url.password; }
+  catch { return false; }
+}
+
+
 // Stored instants are shown and entered in India time.
 export function toIndiaInput(value: string | null) {
   if (!value) return "";

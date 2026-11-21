@@ -36,7 +36,7 @@ export default function StoreHeader({ name, nav, announcement, previews = {} }: 
     <div className="utility-bar"><div className="wrap utility-row">
       {announcement ? <p className="announcement-bar"><span className="dot" aria-hidden="true" />{announcement.link_url ? <Link href={announcement.link_url}>{announcement.title}</Link> : announcement.title}</p>
         : <p className="utility-perks"><span><Zap size={13} aria-hidden="true" />Instant download</span><span><PackageCheck size={13} aria-hidden="true" />Pay with UPI, cards and netbanking</span></p>}
-      <nav className="utility-links" aria-label="Help"><Link href="/library">Track order</Link><Link href="/delivery-policy">Help</Link><Link href="/publish">Sell with us</Link></nav>
+      <nav className="utility-links" aria-label="Help"><Link href="/library">Track order</Link><Link href="/delivery-policy">Help</Link></nav>
     </div></div>
     <div className="wrap header-row">
       <Link href="/" className="logo" aria-label={`${name}, home`}><span className="logo-word"><img src="/assets/tally-logo.webp" alt={brand} style={{ height: 40, width: "auto" }} /></span>{by && <span className="eyebrow">By {by}</span>}</Link>

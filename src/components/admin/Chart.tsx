@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { rupees as money } from "@/lib/money";
 
 export type Format = "money" | "count" | "percent";
 export type Series = {
@@ -9,15 +10,14 @@ export type Series = {
   as?: "bar" | "line"; axis?: "left" | "right"; colour?: string; dashed?: boolean; stack?: string;
 };
 export type ChartProps = {
-  kind: "bar" | "line" | "doughnut"; labels: string[]; series: Series[]; ariaLabel: string;
+  kind: "bar" | "line" | "doughnut" | "combo"; labels: string[]; series: Series[]; ariaLabel: string;
   height?: number; horizontal?: boolean; stacked?: boolean; heat?: boolean; legend?: boolean;
 };
 
 // Paise to rupees. Whole rupees print without decimals, like the rest of the admin.
-const money = (paise: number) => "₹" + (paise / 100).toLocaleString("en-IN", paise % 100 ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : { maximumFractionDigits: 0 });
 const compact = (n: number) => new Intl.NumberFormat("en-IN", { notation: "compact", maximumFractionDigits: 1 }).format(n);
 export const formatValue = (v: number, f: Format = "count") => f === "money" ? money(v) : f === "percent" ? `${v.toLocaleString("en-IN", { maximumFractionDigits: 1 })}%` : v.toLocaleString("en-IN");
-const axisValue = (v: number, f: Format = "count") => f === "money" ? "₹" + compact(v / 100) : f === "percent" ? `${v}%` : compact(v);
+const axisValue = (v: number, f: Format = "count") => f === "money" ? money(v) : f === "percent" ? `${v}%` : compact(v);
 
 const css = (name: string, fallback: string) => {
   try { return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback; } catch { return fallback; }
@@ -45,19 +45,22 @@ export default function Chart({ kind, labels, series, ariaLabel, height = 280, h
       const still = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
       const fmt = (i: number) => series[i]?.format ?? "count";
       const pie = kind === "doughnut";
-      const maxOf = Math.max(1, ...series[0].data);
+      const maxOf = Math.max(1, ...(series[0]?.data ?? []));
+      const rightAxis = (s: Series) => s.axis === "right" || (s.axis === undefined && kind === "combo" && s.format === "money");
       const datasets = series.map((s, i) => {
-        const colour = s.colour ?? palette[i % palette.length];
+        const colour = s.colour ?? (kind === "combo" && s.format === "money" ? brand : palette[i % palette.length]);
         if (pie) return { label: s.label, data: s.data, backgroundColor: labels.map((_, j) => palette[j % palette.length]), borderColor: css("--bg", "#fff"), borderWidth: 2 };
-        const asLine = s.as === "line" || kind === "line";
+        const asLine = s.as ? s.as === "line" : kind === "line" || (kind === "combo" && s.format === "money");
         return {
-          type: asLine ? "line" : "bar", label: s.label, data: s.data, yAxisID: s.axis === "right" ? "y1" : "y", stack: s.stack, order: asLine ? 0 : 1,
+          type: asLine ? "line" : "bar", label: s.label, data: s.data, yAxisID: rightAxis(s) ? "y1" : "y", stack: s.stack, order: asLine ? 0 : 1,
           borderColor: colour, borderWidth: asLine ? 2 : 0, borderDash: s.dashed ? [5, 4] : undefined, pointRadius: asLine && s.data.length > 40 ? 0 : 3, pointHoverRadius: 4, tension: 0.25,
           fill: false, borderRadius: asLine ? 0 : 3, maxBarThickness: 36,
           backgroundColor: asLine ? colour : heat ? s.data.map((v) => alpha(colour, 0.15 + 0.85 * (v / maxOf))) : colour,
         };
       });
-      const hasRight = series.some((s) => s.axis === "right");
+      const hasRight = series.some(rightAxis);
+      const leftFormat = fmt(Math.max(0, series.findIndex((s) => !rightAxis(s))));
+      const rightFormat = fmt(series.findIndex(rightAxis));
       const grid = { color: line }, ticks = { color: ink, font: { size: 11 } };
       chart = new C.Chart(canvas.current, {
         type: pie ? "doughnut" : kind === "line" ? "line" : "bar",
@@ -74,8 +77,8 @@ export default function Chart({ kind, labels, series, ariaLabel, height = 280, h
           },
           scales: pie ? {} : {
             [horizontal ? "y" : "x"]: { stacked, grid: { display: false }, ticks: { ...ticks, maxRotation: 0, autoSkip: !horizontal, maxTicksLimit: horizontal ? undefined : 10 }, border: { color: line } },
-            [horizontal ? "x" : "y"]: { stacked, beginAtZero: true, grid, ticks: { ...ticks, precision: 0, callback: (v: string | number) => axisValue(Number(v), fmt(0)) }, border: { display: false } },
-            ...(hasRight ? { y1: { position: "right", beginAtZero: true, grid: { display: false }, ticks: { ...ticks, precision: 0, callback: (v: string | number) => axisValue(Number(v), fmt(series.findIndex((s) => s.axis === "right"))) }, border: { display: false } } } : {}),
+            [horizontal ? "x" : "y"]: { position: horizontal ? "bottom" : "left", stacked, beginAtZero: true, grid, ticks: { ...ticks, precision: 0, callback: (v: string | number) => axisValue(Number(v), leftFormat) }, border: { display: false } },
+            ...(hasRight ? { y1: { position: "right", beginAtZero: true, grid: { display: false }, ticks: { ...ticks, precision: 0, callback: (v: string | number) => axisValue(Number(v), rightFormat) }, border: { display: false } } } : {}),
           } as never,
         },
       });
@@ -85,9 +88,9 @@ export default function Chart({ kind, labels, series, ariaLabel, height = 280, h
   }, [key]);
 
   return (
-    <div>
+    <div className="min-w-0">
       <div className="relative w-full" style={{ height }}>
-        <canvas ref={canvas} role="img" aria-label={ariaLabel} />
+        <canvas ref={canvas} role="img" aria-label={ariaLabel} data-chart-kind={kind} />
       </div>
       <div className="sr-only"><table>
         <caption>{ariaLabel}</caption>

@@ -25,14 +25,14 @@
 .book-tabs { margin-top: 48px; }
 .tab-list { display: flex; gap: clamp(18px, 3vw, 36px); width: 100%; padding: 0; overflow-x: auto; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: none; box-shadow: none; scrollbar-width: none; }
 .tab-list::-webkit-scrollbar { display: none; }
-.tab-list button { position: relative; padding: 14px 2px 16px; border-radius: 0; background: none; font: 500 16px/1.2 var(--font-sans); color: var(--ink-soft); }
+.tab-list button { position: relative; flex-shrink: 0; padding: 14px 2px 16px; border-radius: 0; background: none; font: 500 16px/1.2 var(--font-sans); color: var(--ink-soft); }
 .tab-list button:hover { color: var(--ink); }
 .tab-list button[aria-selected="true"] { background: none; color: var(--ink); }
-.tab-list button[aria-selected="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--brand); }
-.tab-list button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 6px; }
+.tab-list button[aria-selected="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--brand); }
+.tab-list button:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; border-radius: 6px; }
 .tab-panel { max-width: 84ch; padding: 28px 0 8px; font-size: 16px; }
 .tab-panel .prose p { font-size: 16px; line-height: 1.75; }
 .tab-panel .contents-list li { font-size: 16px; line-height: 1.6; }
 .tab-panel .catalogue { width: 100%; max-width: 640px; }
 .tab-panel .catalogue th { width: 38%; text-align: left; font-weight: 500; color: var(--ink-soft); }
-.tab-panel .catalogue th, .tab-panel .catalogue td { padding: 12px 14px; border-bottom: 1px solid var(--line); font-size: 15px; }
+.tab-panel .catalogue th, .tab-panel .catalogue td { padding: 12px 14px; border-bottom: 1px solid var(--line); font-size: 16px; }

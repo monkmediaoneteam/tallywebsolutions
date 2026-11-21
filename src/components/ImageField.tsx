@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import ImageCropper from "./ImageCropper";
 import { put } from "@vercel/blob/client";
 import { ImageUp, RefreshCw, X } from "lucide-react";
 
@@ -9,12 +10,27 @@ const TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 // An image slot inside an admin form: preview, upload (straight to private storage, checked by the server) or
 // replace, and remove. The chosen image's address goes into a normal form field, so it is saved with the form.
-export default function ImageField({ name, label, value = "", hint, ratio = "16 / 7", expect, onChange }: { name: string; label: string; value?: string; hint?: string; ratio?: string; expect?: { width: number; height: number }; onChange?: (url: string) => void }) {
+export default function ImageField({ name, label, value = "", hint, ratio = "16 / 7", expect, crop = false, onChange }: { name: string; label: string; value?: string; hint?: string; ratio?: string; crop?: boolean; expect?: { width: number; height: number }; onChange?: (url: string) => void }) {
+  const [pending, setPending] = useState<File | null>(null);
+  function choose(file: File) {
+    setError("");
+    if (file.size === 0 || file.size > MAX) { setError("Choose an image up to 5 MB."); return; }
+    if (!TYPES.includes(file.type)) { setError("Choose a JPEG, PNG or WebP image."); return; }
+    if (crop && expect) setPending(file); else void upload(file);
+  }
   const picker = useRef<HTMLInputElement>(null);
+  const field = useRef<HTMLDivElement>(null);
   const [url, setUrl] = useState(value);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    const form = field.current?.closest("form");
+    if (!form || (!busy && !pending)) return;
+    const wait = (event: Event) => { event.preventDefault(); setError("Finish the image upload before saving."); };
+    form.addEventListener("submit", wait);
+    return () => form.removeEventListener("submit", wait);
+  }, [busy, pending]);
   const changed = url !== value;
   useEffect(() => { onChange?.(url); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
   const [dims, setDims] = useState<{ width: number; height: number; url: string } | null>(null);
@@ -27,7 +43,7 @@ export default function ImageField({ name, label, value = "", hint, ratio = "16 
   }
   async function upload(file: File) {
     setError(""); setStatus("");
-    if (file.size > MAX) { setError(`That image is ${(file.size / 1048576).toFixed(1)} MB. The limit is 5 MB.`); return; }
+    if (file.size === 0 || file.size > MAX) { setError(`That image is ${(file.size / 1048576).toFixed(1)} MB. The limit is 5 MB.`); return; }
     if (!TYPES.includes(file.type)) { setError("Choose a JPEG, PNG or WebP image."); return; }
     setBusy(true);
     try {
@@ -44,7 +60,9 @@ export default function ImageField({ name, label, value = "", hint, ratio = "16 
     finally { setBusy(false); }
   }
 
-  return <div className="grid gap-2 text-sm">
+  return <div ref={field} className="grid gap-2 text-sm" aria-busy={busy || !!pending}>
+    {pending && expect && <ImageCropper file={pending} size={expect} onCancel={() => setPending(null)}
+      onComplete={(file) => { setPending(null); void upload(file); }} />}
     <span>{label}</span>
     <input type="hidden" name={name} value={url} />
     <div className="relative overflow-hidden rounded-2 border border-line bg-bg-2" style={{ aspectRatio: ratio }}>
@@ -60,7 +78,7 @@ export default function ImageField({ name, label, value = "", hint, ratio = "16 
         <input value={url} onChange={(e) => setUrl(e.target.value.trim())} maxLength={2000} placeholder="/assets/... or https://..." className="field-input mt-1 w-72 max-w-full" aria-label={`${label} address`} /></details>
     </div>
     <input ref={picker} type="file" className="sr-only" tabIndex={-1} aria-hidden="true" accept={TYPES.join(",")} disabled={busy}
-      onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) upload(file); }} />
+      onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) choose(file); }} />
     <span className="text-xs text-ink-soft">{hint ?? "JPEG, PNG or WebP, up to 5 MB."}</span>
     {expect && url && dims?.url === url && dims.width > 0 && <SizeNote dims={dims} expect={expect} />}
     {status && <p className={`text-[13px] ${changed ? "text-brand" : "text-ink-soft"}`} role="status">{status}</p>}

@@ -15,7 +15,6 @@ const NOINDEX = "noindex, nofollow";
 export const STATIC_PAGES: PageEntry[] = [
   { path: "/", label: "Home", group: "Core pages", defaults: { title: STORE.name, fullTitle: true } },
   { path: "/search", label: "All add-ons", group: "Core pages", defaults: { title: "All add-ons" } },
-  { path: "/publish", label: "Sell with us", group: "Core pages", defaults: { title: "Sell with us", robots: "index, follow" } },
   { path: "/terms", label: "Terms of Use", group: "Policies", defaults: { title: "Terms of Use" } },
   { path: "/privacy", label: "Privacy Policy", group: "Policies", defaults: { title: "Privacy Policy" } },
   { path: "/refund-policy", label: "Refund Policy", group: "Policies", defaults: { title: "Refund Policy" } },
@@ -26,7 +25,6 @@ export const STATIC_PAGES: PageEntry[] = [
   { path: "/cart", label: "Your bag", group: "Account & checkout", defaults: { title: "Your bag", robots: NOINDEX } },
   { path: "/checkout", label: "Checkout", group: "Account & checkout", defaults: { title: "Checkout", robots: NOINDEX } },
   { path: "/library", label: "Your library", group: "Account & checkout", defaults: { title: "Your library", robots: NOINDEX } },
-  { path: "/author", label: "Developer workspace", group: "Account & checkout", defaults: { title: "Developer workspace", robots: NOINDEX } },
 ];
 export const staticDefaults = (path: string): PageDefaults => {
   const page = STATIC_PAGES.find((p) => p.path === path);

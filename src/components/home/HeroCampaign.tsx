@@ -60,8 +60,7 @@ export default function HeroCampaign({ banners, covers }: { banners: Banner[]; c
             {s.subtitle && <span className="pill"><span className="dot" />{s.subtitle}</span>}
             <h1>{lead}<span className="grad">{accent}</span></h1>
             {s.body && <p>{s.body}</p>}
-            <div className="hero-actions">{s.href && <Link className="btn btn-primary" href={s.href}>{s.label || "Browse add-ons"} <span aria-hidden="true">→</span></Link>}
-              <Link className="btn btn-ghost" href="/publish">Sell with us</Link></div>
+            <div className="hero-actions">{s.href && <Link className="btn btn-primary" href={s.href}>{s.label || "Browse add-ons"} <span aria-hidden="true">→</span></Link>}</div>
             <ul className="ticks">{TICKS.map(([strong, rest]) => <li key={strong}><CircleCheck size={16} aria-hidden="true" /><span><strong>{strong}</strong> {rest}</span></li>)}</ul>
           </div>
           {i === index && !s.image && shown.length > 0 && <div className="hero-stage" aria-hidden="true">{shown.map((c, k) =>

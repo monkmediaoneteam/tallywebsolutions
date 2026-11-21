@@ -19,9 +19,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Pages managed in Admin > SEO may be left out, or given their own priority and change frequency; noindex pages are never listed.
   const pages: { path: string; defaults?: Parameters<typeof resolveSeo>[0]['defaults']; priority: number }[] = [
     { path: '/', defaults: staticDefaults('/'), priority: 1 },
-    ...['/search', '/publish', '/privacy', '/terms', '/refund-policy', '/delivery-policy'].map(path => ({ path, defaults: staticDefaults(path), priority: 0.4 })),
+    ...['/search', '/privacy', '/terms', '/refund-policy', '/delivery-policy'].map(path => ({ path, defaults: staticDefaults(path), priority: 0.4 })),
     ...books.map(book => ({ path: `/products/${book.slug}`, defaults: productDefaults(book), priority: 0.4 })),
-    ...[...authors].map(id => ({ path: `/authors/${id}`, priority: 0.4 })),
     ...categories.map(c => ({ path: `/category/${c.slug}`, defaults: categoryDefaults(c), priority: 0.4 })),
   ];
   const rows = pages.map(({ path, defaults, priority }) => {
