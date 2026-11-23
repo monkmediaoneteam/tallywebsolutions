@@ -19,6 +19,21 @@ export default function ImageField({ name, label, value = "", hint, ratio = "16 
     if (crop && expect) setPending(file); else void upload(file);
   }
   const picker = useRef<HTMLInputElement>(null);
+  const library = useRef<HTMLDialogElement>(null);
+  const [items, setItems] = useState<{ url: string; size: number; uploadedAt: string }[] | null>(null);
+  const [libError, setLibError] = useState("");
+  async function openLibrary() {
+    setLibError(""); library.current?.showModal();
+    if (items) return;
+    try {
+      const response = await fetch("/api/admin/media", { cache: "no-store" });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Could not load the media library.");
+      setItems(result.items ?? []);
+    } catch (e) { setLibError(e instanceof Error ? e.message : "Could not load the media library."); setItems([]); }
+  }
+  function pickFromLibrary(next: string) { setUrl(next); setStatus("Image chosen from the library. Save to put it live."); library.current?.close(); }
+
   const field = useRef<HTMLDivElement>(null);
   const [url, setUrl] = useState(value);
   const [status, setStatus] = useState("");
@@ -77,6 +92,26 @@ export default function ImageField({ name, label, value = "", hint, ratio = "16 
       <details className="text-xs text-ink-soft"><summary className="cursor-pointer">or paste an address</summary>
         <input value={url} onChange={(e) => setUrl(e.target.value.trim())} maxLength={2000} placeholder="/assets/... or https://..." className="field-input mt-1 w-72 max-w-full" aria-label={`${label} address`} /></details>
     </div>
+    <button type="button" className="btn btn-ghost min-h-10 px-4 py-2 text-sm" disabled={busy} onClick={openLibrary}>Choose from library</button>
+    <dialog ref={library} className="m-auto w-[min(94vw,820px)] rounded-xl border border-line bg-white p-0 text-ink backdrop:bg-ink/40" aria-labelledby={`${name}-library-title`}>
+      <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
+        <h3 id={`${name}-library-title`} className="text-base font-semibold">Media library</h3>
+        <button type="button" className="btn btn-ghost min-h-9 px-3 py-1.5 text-sm" onClick={() => library.current?.close()}>Close</button>
+      </div>
+      <div className="max-h-[70vh] overflow-y-auto p-5">
+        {libError && <p className="mb-3 text-sm text-danger" role="alert">{libError}</p>}
+        {items === null && <p className="text-sm text-ink-soft" role="status">Loading images...</p>}
+        {items && items.length === 0 && !libError && <p className="text-sm text-ink-soft">No uploaded images yet. Upload one with the button next to this field, and it will appear here for reuse.</p>}
+        {items && items.length > 0 && <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          {items.map((item) => <li key={item.url}>
+            <button type="button" onClick={() => pickFromLibrary(item.url)} className={`block w-full overflow-hidden rounded-lg border bg-bg-2 text-left ${url === item.url ? "border-brand ring-2 ring-brand/40" : "border-line hover:border-ink-soft"}`} aria-label={`Use image uploaded ${new Date(item.uploadedAt).toLocaleDateString("en-IN")}`}>
+              <img src={item.url} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />
+              <span className="block px-2 py-1.5 text-[11px] text-ink-soft">{new Date(item.uploadedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} · {Math.round(item.size / 1024)} KB</span>
+            </button>
+          </li>)}
+        </ul>}
+      </div>
+    </dialog>
     <input ref={picker} type="file" className="sr-only" tabIndex={-1} aria-hidden="true" accept={TYPES.join(",")} disabled={busy}
       onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) choose(file); }} />
     <span className="text-xs text-ink-soft">{hint ?? "JPEG, PNG or WebP, up to 5 MB."}</span>

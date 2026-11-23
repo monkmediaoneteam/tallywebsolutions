@@ -7,15 +7,17 @@ import { useReducedMotion } from "motion/react";
 import type { Banner, PlacedSection } from "@/lib/home";
 import { ratio } from "@/lib/banner-sections";
 
-type Item = { key: string; image: string | null; mobileImage: string | null; href: string | null; alt: string; fit: "cover" | "contain" | null };
+type Item = { key: string; image: string | null; mobileImage: string | null; href: string | null; alt: string; fit: "cover" | "contain" | null; focus: string | null };
 
-const toItem = (b: Banner): Item => ({ key: b.id, image: b.image!, mobileImage: b.mobileImage, href: b.href, alt: b.title, fit: b.fit });
+// A focal point "50,40" (percent from left, top) becomes the CSS object-position that keeps it in frame.
+const focusPosition = (focus: string) => { const [x, y] = focus.split(",").map(Number); return `${Math.min(100, Math.max(0, x))}% ${Math.min(100, Math.max(0, y))}%`; };
+const toItem = (b: Banner): Item => ({ key: b.id, image: b.image!, mobileImage: b.mobileImage, href: b.href, alt: b.title, fit: b.fit, focus: b.focus });
 
 function Art({ item, eager, hidden }: { item: Item; eager: boolean; hidden?: boolean }) {
   if (!item.image) return <div className="banner-item is-empty" hidden={hidden} aria-hidden="true" />;
   const picture = <picture>
     {item.mobileImage && <source media="(max-width: 640px)" srcSet={item.mobileImage} />}
-    <img src={item.image} alt={item.alt} loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : undefined} style={item.fit ? { objectFit: item.fit } : undefined} />
+    <img src={item.image} alt={item.alt} loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : undefined} style={{ ...(item.fit ? { objectFit: item.fit } : {}), ...(item.focus ? { objectPosition: focusPosition(item.focus) } : {}) }} />
   </picture>;
   const className = `banner-item${item.mobileImage ? " has-mobile" : ""}`;
   return item.href
@@ -36,7 +38,7 @@ export default function BannerSectionView({ placed, wrap = "", eager = false, fa
   useEffect(() => setMounted(true), []);
   const visible = section.enabled ? banners.slice(0, section.max) : [];
   const empty = !visible.length;
-  const items: Item[] = empty ? (section.empty === "placeholder" && !fallback ? [{ key: "empty", image: null, mobileImage: null, href: null, alt: "", fit: null }] : []) : visible.map(toItem);
+  const items: Item[] = empty ? (section.empty === "placeholder" && !fallback ? [{ key: "empty", image: null, mobileImage: null, href: null, alt: "", fit: null, focus: null }] : []) : visible.map(toItem);
   const carousel = section.layout === "carousel" && items.length > 1;
   useEffect(() => {
     if (!section.enabled || !carousel || paused || hover || reduced !== false || !section.autoplay) return;

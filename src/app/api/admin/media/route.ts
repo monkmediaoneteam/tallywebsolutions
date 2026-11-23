@@ -8,6 +8,8 @@ import { checkOrigin } from "@/lib/reader-auth";
 import { readLimitedBody } from "@/lib/submissions";
 import { MAX_UPLOAD_BYTES, SaleError, validateAdminUpload } from "@/lib/admin-sale";
 import { MEDIA_KEY, MEDIA_PREFIX, MEDIA_TYPES, mediaUrl } from "@/lib/media";
+import { storedFiles } from "@/lib/storage";
+import { blobApi } from "@/lib/storage-admin";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -16,6 +18,22 @@ const reply = (error: string, status: number) => NextResponse.json({ error }, { 
 
 // Admin image uploads go browser -> private Blob ("ticket"), then "finalize" checks the bytes are a real image
 // before /api/media serves it; anything that is not a real image is deleted.
+// The media library: every image uploaded for the admin, newest first, so an image can be reused instead of re-uploaded.
+export async function GET() {
+  if (!(await isAdmin())) return reply("Admin sign-in required.", 401);
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) return reply("File storage is not set up yet. Connect a private Vercel Blob store to this project.", 503);
+  try {
+    const files = (await storedFiles(blobApi(token))).filter((f) => f.pathname.startsWith(MEDIA_PREFIX));
+    files.sort((x, y) => y.uploadedAt.getTime() - x.uploadedAt.getTime());
+    const items = files.slice(0, 300).map((f) => ({ url: mediaUrl(f.pathname.slice(MEDIA_PREFIX.length)), size: f.size, uploadedAt: f.uploadedAt.toISOString() }));
+    return NextResponse.json({ items }, { headers: { "Cache-Control": "no-store" } });
+  } catch {
+    console.error("[admin media] list failed");
+    return reply("Could not load the media library. Try again.", 503);
+  }
+}
+
 export async function POST(req: Request) {
   if (!checkOrigin(req)) return reply("Origin rejected.", 403);
   if (!(await isAdmin())) return reply("Admin sign-in required.", 401);

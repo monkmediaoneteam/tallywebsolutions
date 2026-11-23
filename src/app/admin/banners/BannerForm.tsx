@@ -32,6 +32,7 @@ export default function BannerForm({ banner, sections, sectionKey, returnTo, don
   const [image, setImage] = useState(banner?.image_url ?? "");
   const [mobileImage, setMobileImage] = useState(banner?.mobile_image_url ?? "");
   const [imageKey, setImageKey] = useState(0);
+  const [focus, setFocus] = useState(String(banner?.payload?.focus ?? ""));
   const s = sections.find((x) => x.key === key) ?? sections[0];
   return <form action="/api/admin/platform/content" method="post" className="grid gap-5 sm:grid-cols-2">
     <input type="hidden" name="section" value="modules" /><input type="hidden" name="type" value="banner" />
@@ -60,6 +61,10 @@ export default function BannerForm({ banner, sections, sectionKey, returnTo, don
         expect={{ width: s.mobileWidth, height: s.mobileHeight }} hint={`Shown on phones instead, ${sizeLabel(s.mobileWidth, s.mobileHeight)}. Leave empty to use the main image.`} />
     </div>}
 
+    <div className="sm:col-span-2">
+      <FocusPicker src={image} value={focus} onChange={setFocus} />
+    </div>
+    <input type="hidden" name="focus" value={focus} />
     <label className="text-sm sm:col-span-2">How the image fits its frame
       <select name="fit" className={input} defaultValue={String(banner?.payload?.fit ?? "")}>
         <option value="">Use the section setting</option>
@@ -77,4 +82,27 @@ export default function BannerForm({ banner, sections, sectionKey, returnTo, don
       <a className="btn btn-ghost" href="/admin/banners">Cancel</a>
     </div>
   </form>;
+}
+
+// Click the picture where the part that must stay in frame is. The point is saved with the banner and used as the
+// crop position on the storefront, so a crop to another shape keeps it visible. Reset returns to the centre.
+function FocusPicker({ src, value, onChange }: { src: string; value: string; onChange: (v: string) => void }) {
+  const [x, y] = value ? value.split(",").map(Number) : [50, 50];
+  const place = (e: React.MouseEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const px = Math.round(((e.clientX - r.left) / r.width) * 100);
+    const py = Math.round(((e.clientY - r.top) / r.height) * 100);
+    onChange(`${Math.min(100, Math.max(0, px))},${Math.min(100, Math.max(0, py))}`);
+  };
+  return <div className="grid gap-2">
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-sm font-medium">Focal point</span>
+      {value && <button type="button" className="text-xs underline text-ink-soft" onClick={() => onChange("")}>Reset to centre</button>}
+    </div>
+    <p className="text-xs text-ink-soft">Click the part of the image that must stay visible when it is cropped. {value ? `Set at ${x}% across, ${y}% down.` : "Not set: the image is cropped from the centre."}</p>
+    {src ? <div role="application" aria-label="Click to set the focal point" onClick={place} className="relative w-full max-w-xl cursor-crosshair overflow-hidden rounded-lg border border-line bg-bg-2" style={{ aspectRatio: "16 / 9" }}>
+      <img src={src} alt="" className="h-full w-full object-cover" style={{ objectPosition: `${x}% ${y}%` }} draggable={false} />
+      <span className="pointer-events-none absolute h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-brand shadow" style={{ left: `${x}%`, top: `${y}%` }} aria-hidden="true" />
+    </div> : <p className="text-xs text-ink-soft">Choose an image first, then set its focal point.</p>}
+  </div>;
 }
