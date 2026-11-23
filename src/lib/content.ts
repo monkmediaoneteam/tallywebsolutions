@@ -61,7 +61,7 @@ export function validateContent(section: ContentSection, input: Record<string, u
   const bookSlugs = input.book_slugs ?? [];
   if (!Array.isArray(bookSlugs) || bookSlugs.length > 100 || bookSlugs.some(s => typeof s !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s)) || new Set(bookSlugs).size !== bookSlugs.length) throw new ContentError("Invalid product selection.");
   const payload = input.payload ?? {};
-  const allowedKeys = ["subtitle", "quote", "attribution", "collection_slug", "author_id", "book_slugs", "video_url", "theme", "size", "category_slug", "category_slugs", "placement", "key", "position", "layout", "max", "columns", "width", "height", "mobile_width", "mobile_height", "autoplay", "empty", "fit", "enabled"];
+  const allowedKeys = ["subtitle", "quote", "attribution", "collection_slug", "author_id", "book_slugs", "video_url", "theme", "size", "category_slug", "category_slugs", "placement", "key", "position", "layout", "max", "columns", "width", "height", "mobile_width", "mobile_height", "autoplay", "empty", "fit", "focus", "enabled"];
   if (!payload || typeof payload !== "object" || Array.isArray(payload) || JSON.stringify(payload).length > 10000 || Object.keys(payload).some(k => !allowedKeys.includes(k))) throw new ContentError("Invalid module data.");
   const p = payload as Record<string, unknown>;
   // A banner names the section it belongs to; a section is a short key plus its layout settings.
@@ -90,7 +90,9 @@ export function validateContent(section: ContentSection, input: Record<string, u
       if (!Array.isArray(value) || value.length > 8 || value.some(s => typeof s !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s))) throw new ContentError("Choose up to 8 categories.");
     } else if (key === "book_slugs") {
       if (!Array.isArray(value) || value.length > 100 || value.some(s => typeof s !== "string" || !/^[a-z0-9-]{1,120}$/.test(s))) throw new ContentError("Invalid module product selection.");
-    } else textField(value, 4000);
+    } else if (key === "focus") { if (value !== "" && !/^(100|[0-9]{1,2})(\.[0-9]{1,2})?,(100|[0-9]{1,2})(\.[0-9]{1,2})?$/.test(String(value))) throw new ContentError("The focal point must be two percentages, for example 50,40."); }
+    else if (key === "fit") { if (!["", "cover", "contain"].includes(String(value))) throw new ContentError("Choose how this image fits: fill the frame, show it whole, or use the section setting."); }
+    else textField(value, 4000);
   }
   return { title, status: status as ContentModule["status"], publish_at: publishAt, ends_at: endsAt, sort, type: String(type), slug,
     body: textField(input.body ?? input.bio ?? input.description, 20000) || null,

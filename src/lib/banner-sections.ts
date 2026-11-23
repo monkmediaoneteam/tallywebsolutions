@@ -33,7 +33,7 @@ const base = { columns: 1, autoplay: 0, fit: "cover", enabled: true, builtIn: tr
 // Template artwork in public/banners is 1920 × 600, so the hero uses that shape (16:5).
 export const DEFAULT_SECTIONS: BannerSection[] = [
   { ...base, key: "hero", name: "Hero", position: "home-top-main", layout: "carousel", max: 8, width: 1920, height: 600, mobileWidth: 800, mobileHeight: 1000, autoplay: 7, empty: "placeholder", sort: 0 },
-  { ...base, key: "side", name: "Side cards", position: "home-top-side", layout: "stack", max: 2, width: 900, height: 600, mobileWidth: 800, mobileHeight: 600, empty: "placeholder", sort: 10 },
+  { ...base, enabled: false, key: "side", name: "Side cards", position: "home-top-side", layout: "stack", max: 2, width: 900, height: 600, mobileWidth: 800, mobileHeight: 600, empty: "placeholder", sort: 10 },
   { ...base, key: "band", name: "Wide band", position: "home-before-faq", layout: "single", max: 1, width: 1920, height: 500, mobileWidth: 800, mobileHeight: 600, empty: "hide", sort: 20 },
   { ...base, key: "product", name: "Product page banner", position: "product-below-tabs", layout: "single", max: 1, width: 1920, height: 500, mobileWidth: 800, mobileHeight: 600, empty: "hide", sort: 30 },
   { ...base, key: "listing", name: "Search and category banner", position: "listing-above-results", layout: "single", max: 1, width: 1920, height: 500, mobileWidth: 800, mobileHeight: 600, empty: "hide", sort: 40 },
