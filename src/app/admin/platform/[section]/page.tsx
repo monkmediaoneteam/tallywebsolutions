@@ -10,12 +10,15 @@ import BookPicker, { type PickerBook } from "../BookPicker";
 import TitleAndSlug from "../TitleAndSlug";
 import { STORE } from "@/lib/store";
 
-export default async function ContentPage({ params, searchParams }: { params: Promise<{ section: string }>; searchParams: Promise<{ type?: string; saved?: string; packs?: string; missing?: string }> }) {
+export default async function ContentPage({ params, searchParams }: { params: Promise<{ section: string }>; searchParams: Promise<{ type?: string; saved?: string; packs?: string; missing?: string; pack?: string; count?: string; packerror?: string }> }) {
   if (!(await isAdmin())) redirect("/admin/login");
   const { section } = await params;
   if (!contentSections.includes(section as ContentSection)) notFound();
   const selected = section as ContentSection;
-  const { type, saved, packs, missing } = await searchParams;
+  const { type, saved, packs, missing, pack, count, packerror } = await searchParams;
+  // A pack's own product (one per collection), if it has been built.
+  const packProducts = new Map((selected === "collections" ? await sql`select slug, price_inr, sale_price_inr, release_approved, active from books where facts->>'_pack_of' is not null` as
+    { slug: string; price_inr: number; sale_price_inr: number | null; release_approved: boolean; active: boolean }[] : []).map((p) => [p.slug, p]));
   const records = (await getAdminContent(selected)).filter(record => !(selected === "modules" && type) || record.type === type);
   const books = selected === "collections" ? (await sql`select b.slug, b.title, b.cover, b.price_inr, c.name as category from books b left join categories c on c.slug = b.category_slug order by b.title` as { slug: string; title: string; cover: string | null; price_inr: number | null; category: string | null }[])
     .map(({ price_inr, ...b }) => ({ ...b, price: price_inr })) : [];
@@ -28,16 +31,34 @@ export default async function ContentPage({ params, searchParams }: { params: Pr
     {packs !== undefined && <p className="mb-6 rounded-2 border border-brand/30 bg-brand/5 px-4 py-3 text-[15px] text-brand" role="status">
       {Number(packs) > 0 ? `Created ${packs} pack${packs === "1" ? "" : "s"}.` : "The starter packs already exist; nothing was changed."}
       {Number(missing) > 0 && ` ${missing} add-on title${missing === "1" ? "" : "s"} from your list ${missing === "1" ? "was" : "were"} not found in Products, so those are left out until you add them.`}
-      {" "}Each pack sells for {STORE.packDiscountPercent}% off when a customer buys all of its add-ons.</p>}
+      {" "}Next, open each one and click Create pack product to sell it as a single product.</p>}
+    {pack && <p className="mb-6 rounded-2 border border-brand/30 bg-brand/5 px-4 py-3 text-[15px] text-brand" role="status">The pack product is ready: {count} add-ons in one download. <Link className="underline" href={`/products/${encodeURIComponent(pack)}`}>View it in the store</Link>.</p>}
+    {packerror && <p className="mb-6 rounded-2 border border-danger/30 bg-danger/10 px-4 py-3 text-[15px] text-danger" role="alert">{packerror}</p>}
     {selected === "collections" && <form method="post" action="/api/admin/platform/starter-packs" className="mb-6 flex flex-wrap items-center gap-4 rounded-2 border border-line bg-bg-2 p-4">
-      <div className="min-w-0 flex-1 text-sm"><p className="font-medium">Starter packs</p>
-        <p className="text-ink-soft">Creates the five groups and the complete pack from your products, matched by name. Existing packs are not changed. Every pack sells for {STORE.packDiscountPercent}% off when a customer buys all of its add-ons.</p></div>
+      <div className="min-w-0 flex-1 text-sm"><p className="font-medium">Starter groups</p>
+        <p className="text-ink-soft">Creates the five groups and the complete set from your products, matched by name. Existing ones are not changed. To sell a group as one product, open it and click Create pack product.</p></div>
       <button type="submit" className="btn btn-primary"><Plus size={16} aria-hidden />Create starter packs</button></form>}
     <details className="mb-8 border-y border-line py-4"><summary className="flex cursor-pointer items-center gap-2 text-sm font-medium"><Plus size={16} aria-hidden />New {section === "collections" ? "collection" : section === "authors" ? "developer" : section === "testimonials" ? "testimonial" : section === "media" ? "media item" : "module"}</summary><div className="pt-5"><Editor section={selected} record={selected === "modules" && type ? { type } : {}} {...options} /></div></details>
     {!records.length && <p className="text-sm text-ink-soft">No {section === "authors" ? "developers" : section} yet.</p>}
-    {records.map(record => <section key={String(record.id ?? record.slug)} className="mb-8 border-b border-line pb-8"><h2 className="mb-4 break-words text-lg font-medium">{String(record.title)}</h2><Editor section={selected} record={record} {...options} /></section>)}
+    {records.map(record => <section key={String(record.id ?? record.slug)} className="mb-8 border-b border-line pb-8"><h2 className="mb-4 break-words text-lg font-medium">{String(record.title)}</h2><Editor section={selected} record={record} {...options} />
+      {selected === "collections" && <PackProduct slug={String(record.slug)} count={Array.isArray(record.book_slugs) ? (record.book_slugs as string[]).length : 0} product={packProducts.get(String(record.slug))} />}</section>)}
   </section>;
 }
+// A collection sold as one product: priced at its add-ons' total less the pack percent, delivered as one ZIP of their files.
+function PackProduct({ slug, count, product }: { slug: string; count: number; product?: { slug: string; price_inr: number; sale_price_inr: number | null; release_approved: boolean; active: boolean } }) {
+  const price = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN")}`;
+  const live = product && product.release_approved && product.active;
+  return <form method="post" action="/api/admin/platform/pack-product" className="mt-4 flex flex-wrap items-center gap-4 rounded-2 border border-line bg-bg-2 p-4">
+    <input type="hidden" name="slug" value={slug} />
+    <div className="min-w-0 flex-1 text-sm">
+      <p className="font-medium">Sell as one product</p>
+      <p className="text-ink-soft">{product
+        ? <>Pack product {live ? "on sale" : "not on sale"} at {price(product.sale_price_inr ?? product.price_inr)}{product.sale_price_inr ? <> (was {price(product.price_inr)})</> : null}. <Link className="underline" href={`/admin/products/${encodeURIComponent(slug)}`}>Open it in Products</Link>. Rebuild after any add-on changes.</>
+        : <>One product at the total of its {count} add-ons less {STORE.packDiscountPercent}%. Customers get one download with all the files.</>}</p></div>
+    <button type="submit" className="btn btn-primary" disabled={count < 2}>{product ? "Rebuild pack product" : "Create pack product"}</button>
+  </form>;
+}
+
 function Editor({ section, record = {}, books, collections, authors, categories }: { section: ContentSection; record?: Record<string, unknown>; books: PickerBook[]; collections: { slug: string; title: string }[]; authors: { id: string; name: string }[]; categories: { slug: string; name: string }[] }) {
   const id = String(record.id ?? record.slug ?? "");
   const field = (name: string, label: string, extra: React.InputHTMLAttributes<HTMLInputElement> = {}) => <label className="text-sm">{label}<input name={name} className="field-input mt-1" defaultValue={String(record[name] ?? "")} {...extra} /></label>;
