@@ -81,6 +81,27 @@ assert.deepEqual(offerBadges(cart[0], [offer({ scope: 'category', targets: ['ayu
   offer({ scope: 'books', targets: ['zzz'] }), offer({ status: 'paused' }), save10], now), ['20% off', 'Code SAVE10']);
 assert.deepEqual(offerBadges(cart[0], [save10, offer()], now), ['20% off', 'Code SAVE10'], 'automatic offers come before codes, so a card flag is never a code');
 
+// A pack sells as one purchase: every product of it in the cart earns the pack percent; one short earns nothing.
+{
+  const { packOffers, isPackOffer } = await import('data:text/javascript;base64,' + Buffer.from(ts.transpileModule(readFileSync(new URL('../src/lib/packs.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText).toString('base64'));
+  const L = (slug, price) => ({ slug, price, regular: price, categories: [], collections: [] });
+  const when = new Date('2026-01-01T00:00:00Z');
+  const sec = packOffers([{ slug: 'sec', title: 'Security', book_slugs: ['a', 'b', 'c'] }], 5);
+  assert.ok(isPackOffer(sec[0]) && sec[0].min_items === 3, 'a pack offer needs every product of the pack');
+  const whole = priceCart([L('a', 10000), L('b', 20000), L('c', 30000)], sec, { now: when });
+  assert.deepEqual([whole.subtotal, whole.discount, whole.total], [60000, 3000, 57000], 'all three: 5% off the total');
+  assert.equal(priceCart([L('a', 10000), L('b', 20000)], sec, { now: when }).discount, 0, 'two of three: no pack discount');
+  assert.equal(priceCart([L('a', 10000), L('b', 20000), L('c', 30000), L('z', 40000)], sec, { now: when }).discount, 3000, 'other products in the cart are not discounted');
+  assert.deepEqual(offerBadges(L('a', 10000), sec, when), [], 'the pack offer is not a flag on one product');
+  assert.deepEqual(packOffers([{ slug: 'one', title: 'One', book_slugs: ['a'] }], 5), [], 'a pack of one product has no pack price');
+  assert.deepEqual(packOffers([{ slug: 'sec', title: 'Security', book_slugs: ['a', 'b'] }], 0), [], 'no percent, no offer');
+  // The complete pack (all products) wins over a group that is part of it, and the products are discounted once.
+  const both = packOffers([{ slug: 'g', title: 'Group', book_slugs: ['a', 'b'] }, { slug: 'all', title: 'All', book_slugs: ['a', 'b', 'c'] }], 5);
+  const cart3 = [L('a', 10000), L('b', 10000), L('c', 10000)];
+  const best = priceCart(cart3, both, { now: when });
+  assert.deepEqual([best.discount, best.applied.map((x) => x.id)], [1500, ['pack:all']], 'the larger pack applies once, not both');
+}
+
 // Data loading on a real (in-memory) database.
 {
   const { createIsolatedDatabase } = await import('./isolated-db.mjs');
@@ -88,6 +109,8 @@ assert.deepEqual(offerBadges(cart[0], [save10, offer()], now), ['20% off', 'Code
     globalThis.offerTestSql = async (parts, ...values) => (await db.query(parts.reduce((t, p, i) => t + (i ? `$${i}` : '') + p, ''), values)).rows;
     const src = readFileSync(new URL('../src/lib/offer-data.ts', import.meta.url), 'utf8')
       .replace(/import \{ sql, type Book \} from "\.\/db";/, 'const sql = globalThis.offerTestSql;')
+      .replace('import { STORE } from "./store";', 'const STORE = { packDiscountPercent: 5 };')
+      .replace('"./packs"', JSON.stringify('data:text/javascript;base64,' + Buffer.from(ts.transpileModule(readFileSync(new URL('../src/lib/packs.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText).toString('base64')))
       .replace('"./money"', JSON.stringify('data:text/javascript;base64,' + Buffer.from(ts.transpileModule(readFileSync(new URL('../src/lib/money.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText).toString('base64')));
     const out = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
     return import('data:text/javascript;base64,' + Buffer.from(out + `

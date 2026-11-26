@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { MAX_CART_ITEMS } from "@/lib/cart-limits";
 import Cover from "@/components/Cover";
 import { useRef, useState } from "react";
 import { ArrowRight, LockKeyhole } from "lucide-react";
@@ -41,7 +42,7 @@ export default function CheckoutForm({ books, initialSlug, enabled }: { books: P
   const selected = slugs.flatMap((slug) => books.filter((book) => book.slug === slug));
   const totals = selected.every((book) => book.saleable) ? cartTotals(selected.map((book) => ({ price_inr: book.price }))) : null;
   const totalLabel = totals ? rupees(totals.total) : "Not yet on sale";
-  const unavailable = !totals || selected.length !== slugs.length || selected.some((book) => !book.saleable) || slugs.length > 20;
+  const unavailable = !totals || selected.length !== slugs.length || selected.some((book) => !book.saleable) || slugs.length > MAX_CART_ITEMS;
   const [form, setForm] = useState({ name: "", email: "", phone: "" });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<{ message: string; field?: Field } | null>(null);
@@ -101,7 +102,7 @@ export default function CheckoutForm({ books, initialSlug, enabled }: { books: P
     <div className="checkout-layout">
       <form onSubmit={pay} className="checkout-form" aria-label="Customer details">
         {!enabled && <p className="purchase-paused">Online ordering is currently unavailable. <Link className="underline" href="/search">Continue browsing</Link> or return later.</p>}
-        {enabled && unavailable && <p className="purchase-paused">{slugs.length > 20 ? "Choose up to twenty add-ons per checkout." : "A selected edition is not currently available to buy."} <Link className="underline" href={initialSlug ? `/products/${encodeURIComponent(initialSlug)}` : "/cart"}>{initialSlug ? "View add-on details" : "Review your bag"}</Link>.</p>}
+        {enabled && unavailable && <p className="purchase-paused">{slugs.length > MAX_CART_ITEMS ? `Choose up to ${MAX_CART_ITEMS} add-ons per checkout.` : "A selected edition is not currently available to buy."} <Link className="underline" href={initialSlug ? `/products/${encodeURIComponent(initialSlug)}` : "/cart"}>{initialSlug ? "View add-on details" : "Review your bag"}</Link>.</p>}
         {([{ key: "name", label: "Full name", type: "text", autoComplete: "name", maxLength: 100 },
           { key: "email", label: "Email address", type: "email", autoComplete: "email", maxLength: 254 },
           { key: "phone", label: "Indian mobile number", type: "tel", autoComplete: "tel", maxLength: 32 }] as const).map((field) => <div key={field.key}>

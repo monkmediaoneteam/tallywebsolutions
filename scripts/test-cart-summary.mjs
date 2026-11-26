@@ -26,5 +26,5 @@ assert.equal((await (await post({ slugs: ['a'], coupon: 'NOPE' })).json()).prici
 assert.equal((await post({ slugs: ['a'], coupon: 'x'.repeat(41) })).status, 400);
 assert.equal((await post({ slugs: ['a'] }, 'https://evil.example')).status, 403);
 assert.equal((await post({ slugs: 'a' })).status, 400);
-assert.equal((await post({ slugs: Array.from({ length: 21 }, (_, i) => `s${i}`) })).status, 400);
+assert.equal((await post({ slugs: Array.from({ length: 51 }, (_, i) => `s${i}`) })).status, 400);
 console.log('Cart summary checks passed: server prices, hidden and unknown titles omitted, origin, limits.');

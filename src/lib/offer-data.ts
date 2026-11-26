@@ -1,12 +1,30 @@
 import { sql, type Book } from "./db";
 import { currentPrice } from "./money";
 import type { CartLine, Customer, Offer } from "./offers";
+import { packOffers } from "./packs";
+import { STORE } from "./store";
 
 // Before the admin turns offers on, these tables do not exist: everything sells at normal prices.
 const missing = (error: unknown) => /relation "(?:offers|offer_redemptions|content_collections)" does not exist/.test(String((error as Error)?.message ?? error));
 
 /** Active offers that have not ended, with their paid redemption count. */
 export async function loadOffers(): Promise<Offer[]> {
+  return [...await storedOffers(), ...await livePackOffers()];
+}
+
+/** One offer per published pack that has at least two products on sale (see packs.ts). */
+async function livePackOffers(): Promise<Offer[]> {
+  try {
+    const packs = await sql`select c.slug, c.title,
+      coalesce((select jsonb_agg(s.slug order by s.ordinality) from jsonb_array_elements_text(c.book_slugs) with ordinality s(slug, ordinality)
+        join books b on b.slug = s.slug where b.active and b.release_approved and b.scan_status = 'clean' and b.price_inr > 0 and b.file_url is not null
+        and (not b.third_party or (b.rights_approved and b.commercial_approved))), '[]'::jsonb) as book_slugs
+      from content_collections c where c.status = 'published' and (c.publish_at is null or c.publish_at <= now())` as { slug: string; title: string; book_slugs: string[] }[];
+    return packOffers(packs, STORE.packDiscountPercent);
+  } catch (error) { if (missing(error)) return []; throw error; }
+}
+
+async function storedOffers(): Promise<Offer[]> {
   try {
     return await sql`select o.id,o.name,o.kind,o.scope,o.targets,o.value,o.cap,o.buy_qty,o.get_qty,o.get_percent,o.bundle_qty,o.bundle_price,
         o.min_items,o.min_subtotal,o.code,o.combinable,o.first_order_only,o.usage_limit,o.per_customer_limit,o.priority,o.status,

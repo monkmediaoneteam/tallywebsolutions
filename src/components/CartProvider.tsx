@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { MAX_CART_ITEMS } from "@/lib/cart-limits";
 import { computeTotals } from "@/lib/money";
 
 export const CART_KEY = "ayurveda-book-store-cart";
@@ -14,12 +15,12 @@ export function parseCart(value: string | null): string[] {
   try {
     const parsed: unknown = JSON.parse(value || "[]");
     return Array.isArray(parsed)
-      ? [...new Set(parsed.filter((slug): slug is string => typeof slug === "string" && /^[a-z0-9][a-z0-9_-]{0,100}$/.test(slug)))].slice(0, 20)
+      ? [...new Set(parsed.filter((slug): slug is string => typeof slug === "string" && /^[a-z0-9][a-z0-9_-]{0,100}$/.test(slug)))].slice(0, MAX_CART_ITEMS)
       : [];
   } catch { return []; }
 }
 
-type Cart = { slugs: string[]; ready: boolean; error: string; add: (slug: string, options?: { quiet?: boolean }) => void; remove: (slug: string) => void;
+type Cart = { slugs: string[]; ready: boolean; error: string; add: (slug: string, options?: { quiet?: boolean }) => void; addMany: (list: string[]) => void; remove: (slug: string) => void;
   drawerOpen: boolean; openDrawer: () => void; closeDrawer: () => void; lastAdded: string | null };
 const CartContext = createContext<Cart | null>(null);
 
@@ -46,6 +47,7 @@ export default function CartProvider({ children }: { children: React.ReactNode }
   }
   return <CartContext.Provider value={{ slugs, ready, error,
     add: (slug, options) => { update(parseCart(JSON.stringify([...slugs, slug]))); setLastAdded(slug); if (!options?.quiet) setDrawerOpen(true); },
+    addMany: (list) => { update(parseCart(JSON.stringify([...slugs, ...list]))); setLastAdded(list[list.length - 1] ?? null); setDrawerOpen(true); },
     remove: (slug) => update(slugs.filter((item) => item !== slug)),
     drawerOpen, openDrawer: () => setDrawerOpen(true), closeDrawer: () => setDrawerOpen(false), lastAdded,
   }}>{children}</CartContext.Provider>;

@@ -16,6 +16,8 @@ export const STORE = {
 
   /** Word for a sellable item, used in navigation and labels ("All add-ons"). */
   itemWord: "add-on",
+  /** Percent off when a customer buys every product of a pack (collection) together. */
+  packDiscountPercent: 5,
 
   /** Footer copy. Lives here so the footer, legal pages and metadata read from one place. */
   footerAbout: "Tally add-ons and business software. Instant download.",
