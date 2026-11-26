@@ -56,32 +56,32 @@ assert.throws(() => cleanSection(section('faq', { blocks: Array.from({ length: t
 assert.equal(cleanSection(section('faq', { blocks: [{ id: 'A b', settings: { question: 'q', answer: 'a', junk: 1 } }] }), true).blocks[0].settings.junk, undefined);
 
 // ---- the default layout reproduces today's homepage, section for section
-const today = ['top', 'quick-links', 'categories', 'banner-slot:home-after-categories', 'rails', 'banner-slot:home-after-products', 'look-inside', 'languages', 'banner-slot:home-before-faq', 'faq'];
+const today = ['top', 'quick-links', 'categories', 'banner-slot:home-after-categories', 'rails', 'collection-rows', 'banner-slot:home-after-products', 'look-inside', 'banner-slot:home-before-faq', 'faq'];
 const key = s => s.type === 'banner-slot' ? `banner-slot:${s.settings.position}` : s.type;
 assert.deepEqual(resolveLayout(undefined).map(key), today, 'no saved layout: the default order');
 assert.deepEqual(resolveLayout({ junk: true }).map(key), today, 'a damaged saved layout falls back to the default');
-assert.deepEqual(defaultLayout().sections.map(s => s.id), ['top', 'quick-links', 'categories', 'slot-after-categories', 'rails', 'slot-after-products', 'look-inside', 'languages', 'slot-before-faq', 'faq']);
+assert.deepEqual(defaultLayout().sections.map(s => s.id), ['top', 'quick-links', 'categories', 'slot-after-categories', 'rails', 'packs', 'slot-after-products', 'look-inside', 'slot-before-faq', 'faq']);
 const dflt = resolveLayout(null);
 assert.ok(dflt.every(s => s.enabled));
 assert.equal(dflt.find(s => s.type === 'faq').blocks.length, 5, 'the five questions the page shows today');
 assert.deepEqual(dflt.find(s => s.type === 'quick-links').blocks.map(b => b.settings.label), ['Bestsellers', 'New arrivals', 'Offers', 'Under ₹199', 'TDL files', 'All add-ons']);
 assert.equal(dflt.find(s => s.type === 'categories').settings.heading, 'Browse by category');
-assert.equal(dflt.find(s => s.type === 'rails').settings.limit, 12);
+assert.equal(dflt.find(s => s.type === 'rails').settings.limit, 10);
 // a default section draws no wrapper styling at all: it looks exactly like before
 for (const s of dflt) assert.deepEqual(sectionFrame(s.settings), { className: 'hs', style: {} }, `${s.type} default frame is bare`);
-assert.ok(!/(book|novel|author|read)/i.test(JSON.stringify(SECTION_TYPES.filter(t => t.id !== 'languages').map(t => [t.label, t.description, t.fields.map(f => [f.label, f.default, f.help])]))), 'Tally wording: no book words');
+assert.ok(!/(book|novel|author|read)/i.test(JSON.stringify(SECTION_TYPES.map(t => [t.label, t.description, t.fields.map(f => [f.label, f.default, f.help])]))), 'Tally wording: no book words');
 
 // ---- resolution with disabled, reordered, duplicated sections
 let layout = defaultLayout();
-layout = ops.toggleSection(layout, 'languages');
+layout = ops.toggleSection(layout, 'look-inside');
 layout = ops.moveSection(layout, 'faq', 'up');
 layout = ops.moveSection(layout, 'faq', 'up');
 const dup = ops.addSection(layout, 'rich-text');
 layout = ops.duplicateSection(dup.layout, dup.id).layout;
 const resolved = resolveLayout(layout);
-assert.equal(resolved.find(s => s.id === 'languages').enabled, false, 'a switched-off section stays in the list but is marked disabled');
+assert.equal(resolved.find(s => s.id === 'look-inside').enabled, false, 'a switched-off section stays in the list but is marked disabled');
 const order = resolved.map(s => s.id);
-assert.ok(order.indexOf('faq') < order.indexOf('languages') && order.indexOf('faq') < order.indexOf('slot-before-faq'), 'moved up twice');
+assert.ok(order.indexOf('faq') < order.indexOf('look-inside') && order.indexOf('faq') < order.indexOf('slot-before-faq'), 'moved up twice');
 const rich = resolved.filter(s => s.type === 'rich-text');
 assert.equal(rich.length, 2); assert.notEqual(rich[0].id, rich[1].id, 'a duplicate gets its own id');
 assert.equal(rich[1].settings.heading, rich[0].settings.heading, 'a duplicate keeps the settings');

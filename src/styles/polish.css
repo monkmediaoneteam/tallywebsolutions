@@ -1,7 +1,7 @@
 /* Storefront polish. Loaded last. */
 
-/* FAQ: each card opens on its own. A closed card keeps its own height instead of stretching to the open one beside it. */
-.faq-grid { align-items: start; }
+/* FAQ: one column, same width and gap for every card. Two columns left ragged gaps whenever one card opened. */
+.faq-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: stretch; max-width: 860px; }
 .faq-item summary { min-height: 64px; }
 
 /* Product page image: the picture itself, at its own shape. No tinted frame and no second box behind it. */
@@ -33,6 +33,10 @@
 .tab-panel { max-width: 84ch; padding: 28px 0 8px; font-size: 16px; }
 .tab-panel .prose p { font-size: 16px; line-height: 1.75; }
 .tab-panel .contents-list li { font-size: 16px; line-height: 1.6; }
-.tab-panel .catalogue { width: 100%; max-width: 640px; }
-.tab-panel .catalogue th { width: 38%; text-align: left; font-weight: 500; color: var(--ink-soft); }
-.tab-panel .catalogue th, .tab-panel .catalogue td { padding: 12px 14px; border-bottom: 1px solid var(--line); font-size: 16px; }
+/* Specification table: bordered, rounded, zebra rows, label column tinted, readable case (not uppercase). */
+.tab-panel .catalogue { width: 100%; max-width: 100%; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; border-collapse: separate; border-spacing: 0; background: #fff; }
+.tab-panel .catalogue th, .tab-panel .catalogue td { padding: 13px 18px; border-bottom: 1px solid var(--line); font: 400 15px/1.5 var(--font-sans); letter-spacing: 0; text-transform: none; color: var(--ink); vertical-align: top; }
+.tab-panel .catalogue th { width: 32%; text-align: left; font-weight: 600; background: color-mix(in srgb, var(--brand) 7%, #fff); color: var(--ink); white-space: normal; }
+.tab-panel .catalogue tr:nth-child(even) td { background: color-mix(in srgb, var(--ink) 3%, #fff); }
+.tab-panel .catalogue tr:last-child th, .tab-panel .catalogue tr:last-child td { border-bottom: 0; }
+@media (max-width: 600px) { .tab-panel .catalogue th, .tab-panel .catalogue td { display: block; width: 100%; } .tab-panel .catalogue th { padding-bottom: 4px; border-bottom: 0; } }

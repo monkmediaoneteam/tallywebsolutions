@@ -121,10 +121,18 @@ export const SECTION_TYPES: SectionType[] = [
         f("Content", "heading_align", "select", "Heading alignment", "left", { options: ALIGNS })],
       [f("Layout", "show_bestsellers", "checkbox", "Show Bestsellers", true), f("Layout", "show_new", "checkbox", "Show New arrivals", true),
         f("Layout", "show_offers", "checkbox", "Show On offer", true), f("Layout", "show_soon", "checkbox", "Show Coming soon", true),
-        f("Layout", "limit", "range", "Products per row", 12, { min: 4, max: 12, step: 1 }),
+        f("Layout", "limit", "range", "Products per row", 10, { min: 4, max: 12, step: 1 }),
         f("Layout", "card_width", "range", "Card width", 216, { min: 160, max: 320, step: 4, unit: "px", help: "A narrower card shows more of the row." })],
       COLOURS, sectionFields()),
     summary: (s) => ["bestsellers", "new", "offers", "soon"].filter((k) => s[`show_${k}`]).join(", ") || "No rows switched on",
+  },
+  {
+    id: "collection-rows", label: "Pack rows", category: "Store sections", singleton: true, removable: true,
+    description: "Each published pack (collection) as a row of its products, with a link to the whole pack. Desktop shows ten per row.",
+    fields: common(heading("Tally packs", { sub: "Bundles of TDLs for one job, or single add-ons." }),
+      [f("Layout", "limit", "range", "Products per row", 10, { min: 2, max: 12, step: 1, help: "Desktop shows up to ten, as two rows of five." })],
+      COLOURS, sectionFields()),
+    summary: head("Tally packs"),
   },
   {
     id: "look-inside", label: "Look inside", category: "Store sections", singleton: true, removable: true,
@@ -132,11 +140,6 @@ export const SECTION_TYPES: SectionType[] = [
     fields: common(heading("Look inside", { sub: "A glimpse before you buy" }),
       [f("Layout", "limit", "range", "Products to show", 8, { min: 2, max: 12, step: 1 })], COLOURS, sectionFields({ rounded: false })),
     summary: head("Look inside"),
-  },
-  {
-    id: "languages", label: "Languages", category: "Store sections", singleton: true, removable: true,
-    description: "A chip for each language your products come in (needs at least two).",
-    fields: common(heading("Read in your language"), COLOURS, sectionFields()), summary: head("Read in your language"),
   },
   {
     id: "faq", label: "Questions", category: "Store sections", singleton: true, removable: true,
@@ -234,8 +237,8 @@ export function newId(random: () => number = Math.random, length = 6) {
 const DEFAULT_ORDER: [id: string, type: string, settings?: Settings][] = [
   ["top", "top"], ["quick-links", "quick-links"], ["categories", "categories"],
   ["slot-after-categories", "banner-slot", { position: "home-after-categories" }],
-  ["rails", "rails"], ["slot-after-products", "banner-slot", { position: "home-after-products" }],
-  ["look-inside", "look-inside"], ["languages", "languages"],
+  ["rails", "rails"], ["packs", "collection-rows"], ["slot-after-products", "banner-slot", { position: "home-after-products" }],
+  ["look-inside", "look-inside"],
   ["slot-before-faq", "banner-slot", { position: "home-before-faq" }], ["faq", "faq"],
 ];
 export function defaultLayout(): Layout {
@@ -364,9 +367,16 @@ export function resolveSection(s: StoredSection): ResolvedSection {
   const blocks = (s.blocks ?? (t.blocks ? defaultBlocks(t, () => newId()) : [])).map((b) => ({ id: b.id, settings: { ...defaultsOf(t.blocks!.fields), ...b.settings } }));
   return { id: s.id, type: s.type, enabled: s.enabled, settings, blocks };
 }
+// A saved layout predates a new section type: the packs row is added after the product rows so it still shows.
+const PACKS: StoredSection = { id: "packs", type: "collection-rows", enabled: true, settings: {} };
 export function resolveLayout(stored: unknown): ResolvedSection[] {
   const layout = stored ? cleanLayout(stored, false) : null;
-  return (layout && layout.sections.length ? layout : defaultLayout()).sections.map(resolveSection);
+  const sections = [...(layout && layout.sections.length ? layout : defaultLayout()).sections];
+  if (!sections.some((s) => s.type === "collection-rows")) {
+    const at = sections.findIndex((s) => s.type === "rails");
+    sections.splice(at >= 0 ? at + 1 : sections.length, 0, { ...PACKS });
+  }
+  return sections.map(resolveSection);
 }
 
 // ---------------------------------------------------------------- show / hide of dependent fields

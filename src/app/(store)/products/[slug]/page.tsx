@@ -25,7 +25,7 @@ import RecentlyViewed from "@/components/RecentlyViewed";
 import { cartLines, loadOffers } from "@/lib/offer-data";
 import { offerBadges } from "@/lib/offers";
 import { TicketPercent } from "lucide-react";
-import { isStoreOwned } from "@/lib/store";
+import { isStoreOwned, STORE } from "@/lib/store";
 import { bannerSections, sectionsAt } from "@/lib/home";
 import { SectionList } from "@/components/home/BannerSectionView";
 
@@ -65,7 +65,7 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
   const facts = Object.entries(book.facts || {}).filter(([k]) => !k.startsWith("_"));
   const paragraphs = (book.long_description || "").split(/\n\s*\n/).filter(Boolean);
   const tabs = [
-    (paragraphs.length || book.description) && { id: "about", label: "About this add-on", content: <div className="prose">{(paragraphs.length ? paragraphs : [book.description!]).map((p, i) => <p key={i}>{p}</p>)}</div> },
+    (paragraphs.length || book.description) && { id: "about", label: `About this ${STORE.itemWord}`, content: <div className="prose">{(paragraphs.length ? paragraphs : [book.description!]).map((p, i) => <p key={i}>{p}</p>)}</div> },
     view.highlights.length && { id: "contents", label: "Contents", content: <ul className="contents-list">{view.highlights.map((h, i) => <li key={i}>{h}</li>)}</ul> },
     facts.length && { id: "details", label: "More details", content: <table className="catalogue"><tbody>{facts.map(([k, v]) => <tr key={k}><th scope="row">{k}</th><td>{v}</td></tr>)}</tbody></table> },
   ].filter(Boolean) as { id: string; label: string; content: React.ReactNode }[];
@@ -91,7 +91,7 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
             {view.offers.length > 0 && <ul className="offer-chips" aria-label="Offers">{view.offers.map((o) => <li key={o}><TicketPercent size={15} aria-hidden="true" />{o}</li>)}</ul>}
             <div className="buy-row"><BuyNow slug={book.slug} title={book.title} enabled={enabled} saleable={view.saleable} />
               <AddToCart slug={book.slug} title={book.title} enabled={enabled} saleable={view.saleable} saveable={view.saveable} variant="page" /></div>
-            {!enabled && <p className="notice">Ordering opens soon. Save it to your bag.</p>}
+            {!enabled && <p className="notice">Ordering opens soon. Save it for later.</p>}
             <ul className="ticks">{[[Download, "Instant download"], [Lock, "Secure payment"], [BadgeCheck, "Licensed to you"], [Lifetime, "Lifetime validity"]].map(([Icon, label]) =>
               <li key={label as string}><Icon size={16} aria-hidden="true" /><span>{label as string}</span></li>)}</ul>
           </div>

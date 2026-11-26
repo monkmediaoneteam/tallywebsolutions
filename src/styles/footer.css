@@ -1,0 +1,38 @@
+/* Storefront footer. One place for footer styles: white, black text, one accent, hairline dividers. No gradients, chips or frames. */
+.site-footer { margin-top: 72px; background: #fff; color: var(--ink-soft); border-top: 1px solid var(--line); font-size: 15px; }
+.site-footer .logo-word img { height: 32px; width: auto; }
+.site-footer .eyebrow { color: var(--ink-mute); }
+
+.trust-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; padding-block: 28px; border-bottom: 1px solid var(--line); }
+.trust-row li { display: flex; align-items: flex-start; gap: 12px; }
+.trust-row svg { flex-shrink: 0; margin-top: 2px; color: var(--brand); }
+.trust-row strong { display: block; color: var(--ink); font-size: 15px; font-weight: 600; }
+.trust-row span { display: block; font-size: 14px; color: var(--ink-mute); }
+.trust-row p { margin: 0; }
+
+.footer-top { display: grid; grid-template-columns: 1.4fr repeat(3, minmax(0, 1fr)); gap: 32px; padding-block: 40px 32px; }
+.footer-about { margin: 14px 0 0; max-width: 32ch; color: var(--ink-soft); line-height: 1.6; }
+.site-footer h2 { margin: 0 0 14px; font: 600 13px/1.4 var(--font-sans); letter-spacing: .02em; color: var(--ink); }
+.site-footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.site-footer ul a { color: var(--ink-soft); transition: color .2s; }
+.site-footer ul a:hover { color: var(--brand); }
+
+/* Payment methods: plain text, not badges. */
+.pay-row { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 20px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--ink-mute); }
+.pay-row li { padding: 0; }
+.pay-row li + li::before { content: "·"; margin-right: 14px; color: var(--line-2); }
+
+/* Popular: plain links separated by spaces, no pill chips. */
+.popular { padding-block: 24px; border-top: 1px solid var(--line); }
+.popular h2 { margin-bottom: 10px; }
+.popular ul { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.popular a.chip { border: 0; background: none; padding: 0; font-size: 14px; color: var(--ink-soft); }
+.popular a.chip:hover { color: var(--brand); text-decoration: underline; }
+
+.footer-legal { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; padding-block: 20px 28px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-mute); }
+
+@media (max-width: 900px) {
+  .footer-top { grid-template-columns: 1fr 1fr; }
+  .footer-top > :first-child { grid-column: 1 / -1; }
+  .trust-row { grid-template-columns: 1fr 1fr; }
+}

@@ -15,6 +15,8 @@
 @import "../styles/banners.css";
 @import "../styles/sections.css";
 @import "../styles/polish.css";
+@import "../styles/footer.css";
+@import "../styles/packs.css";
 @import "../styles/admin-metis.css";
 
 /* Tailwind utilities used by admin and account pages, mapped onto the storefront palette. */

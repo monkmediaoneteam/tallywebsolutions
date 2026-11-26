@@ -14,6 +14,13 @@ export const STORE = {
   /** Small label above the headline. */
   kicker: "Digital downloads",
 
+  /** Word for a sellable item, used in navigation and labels ("All add-ons"). */
+  itemWord: "add-on",
+
+  /** Footer copy. Lives here so the footer, legal pages and metadata read from one place. */
+  footerAbout: "Tally add-ons and business software. Instant download.",
+  footerLegal: "Digital downloads only · Prices in INR",
+
   /** Platform-level, never title-level: this shop is a growing catalogue that
       carries many authors and publishers, and the copy has to read that way. */
   tagline:

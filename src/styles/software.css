@@ -12,7 +12,7 @@ a:hover > .ptile, a:hover .ptile { transform: translateY(-2px); }
   padding: 0; overflow: hidden; border-radius: 14px; border: 1px solid var(--line); background: var(--bg-2); color: var(--brand); box-shadow: none; }
 .cover-product::before, .cover-product::after { content: none; }
 .cover-product-chip { display: flex; align-items: center; justify-content: center; flex: 0 0 26%; width: 26%; max-width: 96px; aspect-ratio: 1;
-  border-radius: 22%; border: 1px solid var(--line); background: #fff; box-shadow: 0 8px 18px -12px rgb(20 20 60 / .3); }
+  border-radius: 22%; border: 1px solid var(--line); background: #fff; box-shadow: none; }
 .cover-product-icon { width: 46%; height: auto; aspect-ratio: 1; color: var(--brand); stroke-width: 1.5; opacity: 1; }
 
 /* Cards: the image spans the card, so every row lines up. */
@@ -91,7 +91,7 @@ a:hover > .ptile, a:hover .ptile { transform: translateY(-2px); }
 
 /* Cards and hero: no second frame around product images; the hero is plain until the admin adds artwork. */
 .book-card .card-plate { padding: 0; background: none; box-shadow: none; }
-.hero-campaign:not(:has(.hero-slide.has-art:not([hidden])))::before { background: linear-gradient(180deg, #ffffff 0%, var(--bg-2) 100%) !important; }
+.hero-campaign:not(:has(.hero-slide.has-art:not([hidden])))::before { background: var(--bg) !important; }
 
 /* Uploaded product covers fill their card frame edge to edge: no inner border, tint or padding around the image. */
 .book-card .card-plate { overflow: hidden; border-radius: 14px; padding: 0; }

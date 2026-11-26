@@ -11,8 +11,7 @@
   .surface-lit { position: relative; overflow: hidden; }
   .surface-lit::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 1px; z-index: 1;
     background: linear-gradient(90deg, transparent, rgb(46 46 126 / 0.45) 22%, rgb(41 150 55 / 0.40) 68%, transparent); }
-  .plate { border-radius: 16px; background: radial-gradient(80% 60% at 50% 15%, rgb(255 255 255 / 0.9), transparent 70%),
-    linear-gradient(160deg, var(--bg-3) 0%, var(--bg-2) 100%); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7); }
+  .plate { border-radius: 16px; background: var(--bg-2); }
   .pill { display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg);
     box-shadow: var(--shadow-e1); font: 500 13px/1 var(--font-sans); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-mute); }
   .dot { display: inline-block; width: 7px; height: 7px; border-radius: 999px; background: var(--brand-glow); animation: dot-pulse 2s infinite; }
