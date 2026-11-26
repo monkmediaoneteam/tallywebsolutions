@@ -1,27 +1,24 @@
-import Link from "next/link";
 import BookCard from "../BookCard";
+import Carousel from "../Carousel";
 import type { PublicBook } from "../book-data";
 import type { Collection } from "@/lib/content";
 
-// One row per published pack that has products on sale. Desktop shows ten products (two rows of five).
-export default function CollectionRows({ collections, books, enabled, heading, subheading, limit }: {
-  collections: Collection[]; books: PublicBook[]; enabled: boolean; heading: string; subheading: string; limit: number;
+// One swipeable row per published pack, like the other product rows: the pack's name, its one-line pitch,
+// its first products (ten by default) and "See all" to the whole pack.
+export default function CollectionRows({ collections, books, enabled, heading, subheading, limit, cardWidth = 216 }: {
+  collections: Collection[]; books: PublicBook[]; enabled: boolean; heading: string; subheading: string; limit: number; cardWidth?: number;
 }) {
   const bySlug = new Map(books.map((b) => [b.slug, b]));
   const rows = collections.map((c) => ({
     c, items: c.book_slugs.map((s) => bySlug.get(s)).filter((b): b is PublicBook => Boolean(b)).slice(0, limit),
-  }));
+  })).filter((r) => r.items.length > 0);
   if (!rows.length) return null;
-  return <section className="wrap section pack-rows">
-    {heading && <div className="section-head"><div><h2>{heading}</h2>{subheading && <p>{subheading}</p>}</div></div>}
-    {rows.map(({ c, items }) => <div className="pack-row" key={c.slug}>
-      <div className="pack-row-head">
-        <div><h3>{c.title}</h3>{c.description && <p>{c.description}</p>}</div>
-        <Link className="link-line" href={`/collections/${encodeURIComponent(c.slug)}`}>View all {c.book_slugs.length} <span aria-hidden="true">→</span></Link>
-      </div>
-      {items.length > 0
-        ? <ul className="pack-grid">{items.map((b) => <li key={b.slug}><BookCard book={b} enabled={enabled} morph={false} /></li>)}</ul>
-        : <p className="pack-empty">No products in this pack are on sale yet.</p>}
+  return <>
+    {heading && <div className="wrap section pack-intro"><h2>{heading}</h2>{subheading && <p>{subheading}</p>}</div>}
+    {rows.map(({ c, items }) => <div className="wrap section" key={c.slug} data-card={cardWidth !== 216 ? "" : undefined}
+      style={cardWidth !== 216 ? { "--card": `${cardWidth}px` } as React.CSSProperties : undefined}>
+      <Carousel title={c.title} tagline={c.description ?? undefined} href={`/collections/${encodeURIComponent(c.slug)}`}>
+        {items.map((b) => <BookCard key={b.slug} book={b} enabled={enabled} morph={false} />)}</Carousel>
     </div>)}
-  </section>;
+  </>;
 }

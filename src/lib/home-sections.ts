@@ -128,11 +128,12 @@ export const SECTION_TYPES: SectionType[] = [
   },
   {
     id: "collection-rows", label: "Pack rows", category: "Store sections", singleton: true, removable: true,
-    description: "Each published pack (collection) as a row of its products, with a link to the whole pack. Desktop shows ten per row.",
-    fields: common(heading("Tally packs", { sub: "Bundles of TDLs for one job, or single add-ons." }),
-      [f("Layout", "limit", "range", "Products per row", 10, { min: 2, max: 12, step: 1, help: "Desktop shows up to ten, as two rows of five." })],
+    description: "One swipeable row for each published pack (collection): its name, its one-line pitch, its first products and a link to the whole pack.",
+    fields: common(heading("", { sub: "" }),
+      [f("Layout", "limit", "range", "Products per row", 10, { min: 2, max: 12, step: 1 }),
+        f("Layout", "card_width", "range", "Card width", 216, { min: 160, max: 320, step: 4, unit: "px", help: "A narrower card shows more of the row." })],
       COLOURS, sectionFields()),
-    summary: head("Tally packs"),
+    summary: head("One row per pack"),
   },
   {
     id: "look-inside", label: "Look inside", category: "Store sections", singleton: true, removable: true,

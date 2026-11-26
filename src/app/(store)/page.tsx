@@ -62,7 +62,7 @@ export default async function Home() {
         usedSlots.add(position);
         return <SectionList list={at(position)} wrap="wrap section" />;
       }
-      case "collection-rows": return <CollectionRows collections={content.collections} books={books} enabled={enabled} heading={str(o.heading)} subheading={str(o.subheading)} limit={num(o.limit, 10)} />;
+      case "collection-rows": return <CollectionRows collections={content.collections} books={books} enabled={enabled} heading={str(o.heading)} subheading={str(o.subheading)} limit={num(o.limit, 10)} cardWidth={num(o.card_width, 216)} />;
       case "look-inside": return <LookInside books={books} heading={str(o.heading)} subheading={str(o.subheading)} limit={num(o.limit, 8)} />;
       case "faq":
         return <FaqGrid items={blocks.map((b) => ({ question: str(b.settings.question), answer: str(b.settings.answer) })).filter((x) => x.question)} heading={str(o.heading)} columns={Number(o.columns) || 2} />;

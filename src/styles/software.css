@@ -5,7 +5,7 @@
 /* Product image frame. An uploaded image fills it. */
 .ptile { position: relative; display: block; width: 100%; border-radius: 14px; transition: transform .3s var(--ease-out); }
 a:hover > .ptile, a:hover .ptile { transform: translateY(-2px); }
-.ptile > img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 14px; border: 1px solid var(--line); background: var(--bg-2); }
+.ptile > img { display: block; width: 100%; height: auto; aspect-ratio: auto; object-fit: contain; border-radius: 14px; border: 1px solid var(--line); background: var(--bg-2); }
 
 /* No uploaded image yet: a light, neutral placeholder with the add-on's icon on a small white chip. */
 .cover-product { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: auto; aspect-ratio: 4 / 3;
@@ -45,7 +45,7 @@ a:hover > .ptile, a:hover .ptile { transform: translateY(-2px); }
 .side-card .link-line { color: var(--brand); }
 .side-cover { width: 132px; transform: none; filter: none; }
 .side-card:hover .side-cover { transform: none; }
-.side-cover img { aspect-ratio: 4 / 3; object-fit: cover; border-radius: 12px; border: 1px solid var(--line); }
+.side-cover img { aspect-ratio: auto; object-fit: contain; border-radius: 12px; border: 1px solid var(--line); }
 .side-icon { color: var(--brand); }
 .side-banner { grid-template-columns: minmax(0, 1fr); min-height: 190px; background: var(--bg-2); }
 .side-body { color: var(--ink-soft); font-size: 14px; }
@@ -75,7 +75,7 @@ a:hover > .ptile, a:hover .ptile { transform: translateY(-2px); }
 
 /* Small thumbnails. */
 .qv-cover .cover-product, .qv-cover img { width: 100%; max-width: 300px; }
-.qv-cover img { aspect-ratio: 4 / 3; object-fit: cover; border-radius: 12px; }
+.qv-cover img { aspect-ratio: auto; object-fit: contain; border-radius: 12px; }
 .entry-plate .ptile { width: min(320px, 100%); }
 .drawer-cover .cover-product, .summary-cover .cover-product, .mega-covers .cover-product, .cat-fan .cover-product { border-radius: 8px; }
 .drawer-cover .cover-product-chip, .summary-cover .cover-product-chip, .mega-covers .cover-product-chip { width: 44%; flex-basis: 44%; box-shadow: none; }

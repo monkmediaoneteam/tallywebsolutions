@@ -14,7 +14,7 @@
 .look-band { padding: clamp(24px, 4vw, 44px); }
 .look-card { grid-template-columns: minmax(0, 1fr); align-content: start; gap: 14px; padding: 16px; }
 .look-cover { display: block; }
-.look-cover img { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border: 1px solid var(--line); border-radius: 12px; box-shadow: none; background: #fff; }
+.look-cover img { width: 100%; height: auto; aspect-ratio: auto; object-fit: contain; border: 1px solid var(--line); border-radius: 12px; box-shadow: none; background: #fff; }
 .look-title { color: var(--ink); font-size: 17px; }
 .look-text li { color: var(--ink-soft); }
 .look-grid.look-1 .look-card { grid-template-columns: minmax(160px, 260px) minmax(0, 1fr); align-items: center; gap: 28px; padding: 20px; }

@@ -9,12 +9,12 @@ import ModuleFields from "../ModuleFields";
 import BookPicker, { type PickerBook } from "../BookPicker";
 import TitleAndSlug from "../TitleAndSlug";
 
-export default async function ContentPage({ params, searchParams }: { params: Promise<{ section: string }>; searchParams: Promise<{ type?: string; saved?: string }> }) {
+export default async function ContentPage({ params, searchParams }: { params: Promise<{ section: string }>; searchParams: Promise<{ type?: string; saved?: string; packs?: string; missing?: string; offer?: string }> }) {
   if (!(await isAdmin())) redirect("/admin/login");
   const { section } = await params;
   if (!contentSections.includes(section as ContentSection)) notFound();
   const selected = section as ContentSection;
-  const { type, saved } = await searchParams;
+  const { type, saved, packs, missing, offer } = await searchParams;
   const records = (await getAdminContent(selected)).filter(record => !(selected === "modules" && type) || record.type === type);
   const books = selected === "collections" ? (await sql`select b.slug, b.title, b.cover, b.price_inr, c.name as category from books b left join categories c on c.slug = b.category_slug order by b.title` as { slug: string; title: string; cover: string | null; price_inr: number | null; category: string | null }[])
     .map(({ price_inr, ...b }) => ({ ...b, price: price_inr })) : [];
@@ -24,6 +24,14 @@ export default async function ContentPage({ params, searchParams }: { params: Pr
   const options = { books, collections, authors, categories };
   return <section>
     {saved && <p className="mb-6 rounded-2 border border-brand/30 bg-brand/5 px-4 py-3 text-[15px] text-brand" role="status">Saved. The store is updated.</p>}
+    {packs !== undefined && <p className="mb-6 rounded-2 border border-brand/30 bg-brand/5 px-4 py-3 text-[15px] text-brand" role="status">
+      {Number(packs) > 0 ? `Created ${packs} pack${packs === "1" ? "" : "s"}.` : "The starter packs already exist; nothing was changed."}
+      {Number(missing) > 0 && ` ${missing} add-on title${missing === "1" ? "" : "s"} from your list ${missing === "1" ? "was" : "were"} not found in Products, so those are left out until you add them.`}
+      {offer === "created" && " A 5% pack offer was created (Admin > Offers)."}</p>}
+    {selected === "collections" && <form method="post" action="/api/admin/platform/starter-packs" className="mb-6 flex flex-wrap items-center gap-4 rounded-2 border border-line bg-bg-2 p-4">
+      <div className="min-w-0 flex-1 text-sm"><p className="font-medium">Starter packs</p>
+        <p className="text-ink-soft">Creates the five groups and the complete pack from your products, matched by name, with a 5% pack offer. Existing packs are not changed.</p></div>
+      <button type="submit" className="btn btn-primary"><Plus size={16} aria-hidden />Create starter packs</button></form>}
     <details className="mb-8 border-y border-line py-4"><summary className="flex cursor-pointer items-center gap-2 text-sm font-medium"><Plus size={16} aria-hidden />New {section === "collections" ? "collection" : section === "authors" ? "developer" : section === "testimonials" ? "testimonial" : section === "media" ? "media item" : "module"}</summary><div className="pt-5"><Editor section={selected} record={selected === "modules" && type ? { type } : {}} {...options} /></div></details>
     {!records.length && <p className="text-sm text-ink-soft">No {section === "authors" ? "developers" : section} yet.</p>}
     {records.map(record => <section key={String(record.id ?? record.slug)} className="mb-8 border-b border-line pb-8"><h2 className="mb-4 break-words text-lg font-medium">{String(record.title)}</h2><Editor section={selected} record={record} {...options} /></section>)}
