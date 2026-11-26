@@ -2,7 +2,9 @@ import { normaliseFileType } from "@/lib/file-types";
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { sql, getBook, type Book, type Order } from "@/lib/db";
-import { computeTotals } from "@/lib/money";
+import { computeTotals, currentPrice } from "@/lib/money";
+import { allocate } from "@/lib/bundles";
+import { bundleParts } from "@/lib/bundle-data";
 import { checkoutConfiguration, createPaymentLink, PaymentLinkCreationRejected } from "@/lib/razorpay";
 import { fulfilOrder } from "@/lib/fulfil";
 import { isSaleable } from "@/lib/catalogue";
@@ -111,7 +113,13 @@ export async function POST(req: Request) {
     const books = await Promise.all((slugs as string[]).map(getBook));
     // Demo preview titles show prices but can never be bought.
     if (books.some(book => !book || !isSaleable(book) || book.facts?._demo === "true")) return reply("A selected product is not available for sale.", 409);
-    for (const book of books) {
+    // A bundle is one line in the bag; what is delivered is the products inside it, each with its own file.
+    const parts = await bundleParts(books as Book[]);
+    if ([...parts.values()].some(inside => inside.length < 2)) return reply("A selected bundle is not available for sale.", 409);
+    const delivered = (books as Book[]).flatMap(book => parts.get(book.slug) ?? [book]);
+    if (new Set(delivered.map(book => book.slug)).size !== delivered.length)
+      return reply("Your bag has a bundle and an add-on that is already inside it, or two bundles that share add-ons. Remove one and try again.", 409);
+    for (const book of delivered) {
       if (!book?.file_url || !normaliseFileType(book.file_format)) return reply("Purchased file is not configured for delivery.", 503);
       if (typeof book.file_sha256 !== "string" || book.file_sha256.length !== 64 || !/^[a-f0-9]{64}$/i.test(book.file_sha256))
         return reply("Purchased file integrity is not configured for delivery.", 503);
@@ -133,11 +141,21 @@ export async function POST(req: Request) {
     const pricing = priceCart(lines, offers, { now, code: coupon || null, customer });
     if (body.expectedTotal !== undefined && body.expectedTotal !== pricing.total)
       return NextResponse.json({ error: "Prices changed.", pricing }, { status: 409 });
-    const items = books.map((book, i) => ({
-      slug: book!.slug, title: book!.title, price: pricing.lines[i].price, discount: pricing.lines[i].discount, list_price: book!.price_inr,
-      file_url: book!.file_url, file_format: book!.file_format, file_sha256: book!.file_sha256,
-      edition: book!.edition || null,
-    }));
+    const items = books.flatMap((book, i) => {
+      const line = pricing.lines[i], inside = parts.get(book!.slug);
+      if (!inside) return [{
+        slug: book!.slug, title: book!.title, price: line.price, discount: line.discount, list_price: book!.price_inr,
+        file_url: book!.file_url, file_format: book!.file_format, file_sha256: book!.file_sha256,
+        edition: book!.edition || null,
+      }];
+      // The bundle's one price, and any offer on it, are shared out over its products in proportion to their prices.
+      const weights = inside.map(p => currentPrice(p, now).price);
+      const base = allocate(line.base, weights), off = allocate(line.discount, weights);
+      return inside.map((p, k) => ({
+        slug: p.slug, title: p.title, price: base[k] - off[k], discount: off[k], list_price: p.price_inr,
+        file_url: p.file_url, file_format: p.file_format, file_sha256: p.file_sha256, edition: p.edition || null, bundle: book!.title,
+      }));
+    });
     const { subtotal, tax } = computeTotals(pricing.lines.map(l => l.base));
     const total = pricing.total + tax;
     const id = crypto.randomBytes(18).toString("base64url");

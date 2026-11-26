@@ -34,6 +34,7 @@ try {
   const db = load('../src/lib/db.ts', {
     '@neondatabase/serverless': { neon },
     './env': { requireEnv: () => fakeUrl },
+    './bundles': { bundleSlugOf: () => null, overlayBundle: row => row },
     './local-db': { localDatabase: () => ({ query: async (statement, parameters) => { localCalls++; return { rows: [{ n: parameters[0] }] }; } }) },
   });
   const analytics = load('../src/lib/analytics.ts', { './db': db });
