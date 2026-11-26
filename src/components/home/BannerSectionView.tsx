@@ -50,9 +50,12 @@ export default function BannerSectionView({ placed, wrap = "", eager = false, fa
   if (!items.length) return null;
 
   const shown = section.layout === "single" ? items.slice(0, 1) : items;
-  const style = { "--ratio": ratio(section.width, section.height), "--mratio": ratio(section.mobileWidth, section.mobileHeight), "--cols": section.columns, "--fit": section.fit } as CSSProperties;
+  // "Adapt to the image": no fixed shape; each banner takes its own image's proportions, uncropped.
+  const adapt = section.fit === "adapt";
+  const style = { "--ratio": adapt ? "auto" : ratio(section.width, section.height), "--mratio": adapt ? "auto" : ratio(section.mobileWidth, section.mobileHeight),
+    "--cols": section.columns, "--fit": adapt ? "contain" : section.fit } as CSSProperties;
   const go = (step: number) => setIndex((i) => (i + step + items.length) % items.length);
-  const body = <section className={`banner-section layout-${section.layout}`} style={style} data-section={section.key} data-position={section.position} aria-label={section.name}
+  const body = <section className={`banner-section layout-${section.layout}`} style={style} data-fit={section.fit} data-section={section.key} data-position={section.position} aria-label={section.name}
     aria-roledescription={carousel ? "carousel" : undefined} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
     onFocusCapture={() => setHover(true)} onBlurCapture={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setHover(false); }}>
     {shown.map((item, i) => <Art key={item.key} item={item} eager={eager && i === 0} hidden={carousel ? i !== index % items.length : undefined} />)}

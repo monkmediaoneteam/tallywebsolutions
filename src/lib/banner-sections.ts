@@ -25,7 +25,7 @@ export type Layout = keyof typeof LAYOUTS;
 export type BannerSection = {
   key: string; name: string; position: Position; layout: Layout;
   max: number; columns: number; width: number; height: number; mobileWidth: number; mobileHeight: number;
-  autoplay: number; empty: "placeholder" | "hide"; fit: "cover" | "contain"; enabled: boolean; sort: number;
+  autoplay: number; empty: "placeholder" | "hide"; fit: "cover" | "contain" | "adapt"; enabled: boolean; sort: number;
   id?: string; updatedAt?: string; builtIn: boolean;
 };
 
@@ -43,8 +43,19 @@ export const DEFAULT_SECTIONS: BannerSection[] = [
 export const EMPTY_LABEL: Record<Position, string> = Object.fromEntries(Object.keys(POSITIONS).map((p) => [p,
   p === "home-top-main" ? "Show the store's built-in hero" : p === "home-top-side" ? "Show product cards (best deal, newest)" : "Show a plain frame"])) as Record<Position, string>;
 
+// The common banner shapes, each with the pixel size to upload (width × height). The admin picks a shape; the numbers follow.
+export const SHAPES = [
+  { label: "21:9", width: 2520, height: 1080 }, { label: "16:9", width: 1920, height: 1080 }, { label: "16:5", width: 1920, height: 600 },
+  { label: "4:1", width: 1600, height: 400 }, { label: "3:2", width: 1500, height: 1000 }, { label: "4:3", width: 1600, height: 1200 },
+  { label: "1:1", width: 1000, height: 1000 }, { label: "4:5", width: 800, height: 1000 }, { label: "3:4", width: 900, height: 1200 },
+] as const;
+export const PHONE_SHAPES = SHAPES.filter((s) => ["4:5", "1:1", "3:4", "3:2", "16:9", "4:3"].includes(s.label));
+export const sameShape = (aw: number, ah: number, bw: number, bh: number) => ah > 0 && bh > 0 && Math.abs(aw / ah - bw / bh) < 0.01;
+
 // Ready-made sizes offered next to the width and height boxes (desktop and phone together).
 export const SIZE_PRESETS = [
+  { label: "Widescreen 16:9", width: 1920, height: 1080, mobileWidth: 800, mobileHeight: 1000 },
+  { label: "Ultrawide 21:9", width: 2560, height: 1080, mobileWidth: 800, mobileHeight: 1000 },
   { label: "Wide hero 16:5", width: 1920, height: 600, mobileWidth: 800, mobileHeight: 1000 },
   { label: "Hero 16:7", width: 1600, height: 700, mobileWidth: 800, mobileHeight: 1000 },
   { label: "Strip 4:1", width: 1600, height: 400, mobileWidth: 800, mobileHeight: 600 },
@@ -89,7 +100,7 @@ export function sectionFromModule(m: StoredModule): BannerSection {
     max: int(p.max, LIMITS.max, d.max), columns: int(p.columns, LIMITS.columns, d.columns),
     width: int(p.width, LIMITS.width, d.width), height: int(p.height, LIMITS.height, d.height),
     mobileWidth: int(p.mobile_width, LIMITS.width, d.mobileWidth), mobileHeight: int(p.mobile_height, LIMITS.height, d.mobileHeight),
-    autoplay: int(p.autoplay, LIMITS.autoplay, d.autoplay), fit: p.fit === "contain" ? "contain" : "cover", empty: p.empty === "placeholder" || p.empty === "hide" ? p.empty : d.empty,
+    autoplay: int(p.autoplay, LIMITS.autoplay, d.autoplay), fit: p.fit === "contain" ? "contain" : p.fit === "adapt" ? "adapt" : "cover", empty: p.empty === "placeholder" || p.empty === "hide" ? p.empty : d.empty,
     enabled: p.enabled !== "off", builtIn: DEFAULT_SECTIONS.some((s) => s.key === key),
   };
 }
@@ -103,6 +114,16 @@ export function mergeSections(modules: (StoredModule & { type: string })[]): Ban
 }
 
 export const ratio = (w: number, h: number) => `${w} / ${h}`;
+/** The ratio a width and height make, in words: "21:9", or "about 21:9" when it is close to a common one. */
+export function ratioName(w: number, h: number): string {
+  if (!(w > 0 && h > 0)) return "";
+  const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
+  const d = gcd(w, h), exact = `${w / d}:${h / d}`;
+  if (w / d <= 21 && h / d <= 21) return exact;
+  const common: [number, number][] = [[21, 9], [16, 9], [16, 7], [16, 5], [4, 1], [3, 1], [3, 2], [4, 3], [5, 4], [4, 5], [1, 1], [3, 4], [2, 3], [9, 16]];
+  const best = common.reduce((a, c) => (Math.abs(Math.log(w / h / (c[0] / c[1]))) < Math.abs(Math.log(w / h / (a[0] / a[1]))) ? c : a));
+  return Math.abs(Math.log(w / h / (best[0] / best[1]))) < 0.03 ? `about ${best[0]}:${best[1]}` : `${(w / h).toFixed(2)}:1`;
+}
 export const sizeLabel = (w: number, h: number) => `${w} × ${h} px`;
 
 // Additional banner-only rules used by the content endpoint without changing other CMS types.
@@ -113,7 +134,7 @@ export function bannerInputError(input: Record<string, unknown>, savedKey?: stri
   if (input.type === "banner-section") {
     if (savedKey !== undefined && payload.key !== savedKey) return "A saved section key cannot be changed.";
     if (!Number.isInteger(Number(input.sort)) || Math.abs(Number(input.sort)) > 1000) return "Section order must be from -1000 to 1000.";
-    if (!["cover", "contain"].includes(String(payload.fit))) return "Choose how the image fits.";
+    if (!["cover", "contain", "adapt"].includes(String(payload.fit))) return "Choose how the image fits.";
   }
   if (input.type === "banner") {
     if (typeof payload.placement !== "string" || !payload.placement) return "Choose an existing banner section.";

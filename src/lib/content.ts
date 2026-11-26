@@ -75,7 +75,7 @@ export function validateContent(section: ContentSection, input: Record<string, u
       if (!Number.isInteger(n) || n < lo || n > hi) throw new ContentError(`${field.replace("_", " ")} must be a whole number from ${lo} to ${hi}.`);
     }
     if (!["placeholder", "hide"].includes(String(p.empty))) throw new ContentError("Choose what shows when the section is empty.");
-    if ("fit" in p && !["cover", "contain"].includes(String(p.fit))) throw new ContentError("Choose how the image fits: fill the frame or show it whole.");
+    if ("fit" in p && !["cover", "contain", "adapt"].includes(String(p.fit))) throw new ContentError("Choose how the image fits: fill the frame, show it whole, or adapt to the image.");
     if (p.key === "new") throw new ContentError("That key is reserved. Choose another.");
     if (!["on", "off"].includes(String(p.enabled))) throw new ContentError("Choose whether the section is on.");
   }
@@ -91,7 +91,7 @@ export function validateContent(section: ContentSection, input: Record<string, u
     } else if (key === "book_slugs") {
       if (!Array.isArray(value) || value.length > 100 || value.some(s => typeof s !== "string" || !/^[a-z0-9-]{1,120}$/.test(s))) throw new ContentError("Invalid module product selection.");
     } else if (key === "focus") { if (value !== "" && !/^(100|[0-9]{1,2})(\.[0-9]{1,2})?,(100|[0-9]{1,2})(\.[0-9]{1,2})?$/.test(String(value))) throw new ContentError("The focal point must be two percentages, for example 50,40."); }
-    else if (key === "fit") { if (!["", "cover", "contain"].includes(String(value))) throw new ContentError("Choose how this image fits: fill the frame, show it whole, or use the section setting."); }
+    else if (key === "fit") { if (!["", "cover", "contain", ...(type === "banner-section" ? ["adapt"] : [])].includes(String(value))) throw new ContentError("Choose how this image fits: fill the frame, show it whole, or use the section setting."); }
     else textField(value, 4000);
   }
   return { title, status: status as ContentModule["status"], publish_at: publishAt, ends_at: endsAt, sort, type: String(type), slug,

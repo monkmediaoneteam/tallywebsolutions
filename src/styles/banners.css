@@ -9,6 +9,10 @@
 .banner-item img { object-fit: var(--fit, cover); transition: transform .6s var(--ease-out); }
 a.banner-item:hover img { transform: none; }
 .banner-section.layout-grid { grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); }
+/* Adapt to the image: the frame is as tall as the image, nothing is cropped or padded. */
+.banner-section[data-fit="adapt"] .banner-item { aspect-ratio: auto; background: none; }
+.banner-section[data-fit="adapt"] .banner-item picture, .banner-section[data-fit="adapt"] .banner-item img { height: auto; }
+.banner-section[data-fit="adapt"].layout-grid { align-items: start; }
 .banner-controls { position: absolute; bottom: 14px; left: 50%; z-index: 2; display: flex; align-items: center; gap: 6px; padding: 5px; border-radius: 999px; translate: -50% 0;
   background: rgb(255 255 255 / .85); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: var(--shadow-e2); }
 .banner-controls .round-btn { width: 34px; height: 34px; box-shadow: none; }

@@ -78,7 +78,7 @@ export default async function BannersPage({ searchParams }: { searchParams: Prom
           return <tr key={b.id} className="border-t border-line hover:bg-bg-2">
             <td className="p-3"><div className="flex items-center gap-3">
               <a href={edit} className="block w-36 shrink-0 overflow-hidden rounded-1 border border-line bg-bg-2" style={{ aspectRatio: section ? ratio(section.width, section.height) : "16 / 7" }} aria-label={`Edit ${b.title}`}>
-                {b.image_url ? <img src={b.image_url} alt="" className="h-full w-full" style={{ objectFit: section?.fit ?? "cover" }} /> : <span className="grid h-full w-full place-items-center text-[11px] text-ink-soft">No image</span>}</a>
+                {b.image_url ? <img src={b.image_url} alt="" className="h-full w-full" style={{ objectFit: section?.fit === "contain" || section?.fit === "adapt" ? "contain" : "cover" }} /> : <span className="grid h-full w-full place-items-center text-[11px] text-ink-soft">No image</span>}</a>
               <div className="min-w-0"><a href={edit} className="font-medium hover:underline">{b.title}</a>
                 <p className="truncate text-xs text-ink-soft">{b.link_url ? `Links to ${b.link_url}` : "Not linked"}{b.mobile_image_url ? " · phone image" : ""}</p></div>
             </div></td>
