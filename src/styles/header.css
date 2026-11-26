@@ -50,25 +50,6 @@
   .mega-covers a:hover { transform: translateY(-4px); }
   .mega-covers img { width: 100%; height: auto; border-radius: 2px; box-shadow: var(--shadow-e2); }
   @keyframes drop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
-  .site-footer { margin-top: 64px; color: #d5d6ea; background: radial-gradient(60% 80% at 100% 0%, rgb(41 150 55 / .16), transparent 60%), linear-gradient(170deg, var(--forest-2), var(--forest) 60%); }
-  .site-footer .logo-word { color: #fff; }
-  .site-footer .eyebrow { color: #b8e6c4; }
-  .trust-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; margin-top: -1px; border-bottom: 1px solid var(--forest-line); }
-  .trust-row li { display: flex; align-items: center; gap: 14px; padding: 26px 8px; }
-  .trust-row svg { flex-shrink: 0; color: var(--brand-glow); }
-  .trust-row strong { display: block; color: #fff; font-size: 15px; font-weight: 500; }
-  .trust-row span { font-size: 13px; color: #b5b7d6; }
-  .pay-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-  .pay-row li { padding: 5px 10px; border: 1px solid var(--forest-line); border-radius: 8px; background: rgb(255 255 255 / .05); font: 500 12px/1.4 var(--font-sans); color: #c5ecd3; }
-  .footer-top { display: grid; grid-template-columns: 1.4fr repeat(4, minmax(0, 1fr)); gap: 32px; padding-block: 56px 32px; }
-  .footer-about { margin-block: 12px 18px; max-width: 30ch; color: #d5d6ea; font-size: 15px; }
-  .site-footer h2 { margin-bottom: 12px; font: 500 13px/1.4 var(--font-sans); letter-spacing: .04em; text-transform: uppercase; color: #b8e6c4; }
-  .site-footer ul a { display: inline-block; padding-block: 5px; font-size: 15px; color: #d5d6ea; transition: color .2s; }
-  .site-footer ul a:hover { color: #fff; }
-  .popular { padding-block: 22px; border-top: 1px solid var(--forest-line); }
-  .site-footer .popular a.chip { border-color: var(--forest-line); background: transparent; color: #c5ecd3; }
-  .popular ul { display: flex; flex-wrap: wrap; gap: 8px; }
-  .footer-legal { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; padding-block: 20px 28px; border-top: 1px solid var(--forest-line); font: 500 13px/1.5 var(--font-sans); color: #b5b7d6; }
   @media (max-width: 900px) { .footer-top { grid-template-columns: 1fr 1fr; } .footer-top > :first-child { grid-column: 1 / -1; } .trust-row { grid-template-columns: 1fr 1fr; } .icon-label { display: none; } .header-icons a { height: 44px; padding-inline: 6px; } }
   @media (max-width: 640px) { .utility-links, .utility-perks span + span { display: none; } }
   /* Below wide desktop the category row scrolls instead of overflowing; hover panels need the full width. */

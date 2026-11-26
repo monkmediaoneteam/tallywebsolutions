@@ -1,6 +1,5 @@
 @layer components {
-  .listing-banner { position: relative; overflow: hidden; padding-block: 8px 36px; border-bottom: 1px solid var(--line); background:
-    radial-gradient(90% 140% at 100% 0%, color-mix(in srgb, var(--tile) 20%, transparent), transparent 60%), radial-gradient(120% 80% at 0% 0%, rgb(46 46 126 / .08), transparent 55%), var(--bg); }
+  .listing-banner { position: relative; overflow: hidden; padding-block: 8px 36px; border-bottom: 1px solid var(--line); background: var(--bg); }
   .listing-banner h1 { font-size: clamp(34px, 4.6vw, 64px); letter-spacing: -.05em; line-height: 1; }
   .listing-banner p { max-width: 56ch; margin-top: 10px; color: var(--ink-soft); }
   .listing-art { position: absolute; right: 4%; bottom: -24px; width: 220px; opacity: .9; }

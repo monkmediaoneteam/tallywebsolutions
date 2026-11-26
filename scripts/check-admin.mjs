@@ -296,7 +296,7 @@ try {
   };
   const saveSection = async () => { await page.getByRole('button', { name: 'Save', exact: true }).click(); await slow(page).toHaveURL(/\?saved=1/); await slow(page.getByText('Saved. The storefront is updated.')).toBeVisible(); };
   const defaultOrder = (await order()).map((s) => s.split('|')[0]);
-  assert.deepEqual(defaultOrder.filter((t) => t !== 'banner-slot' && t !== 'top'), ['quick-links', 'categories', 'rails', 'look-inside', 'languages', 'faq'].filter((t) => defaultOrder.includes(t)), 'default order is the storefront as it was');
+  assert.deepEqual(defaultOrder.filter((t) => t !== 'banner-slot' && t !== 'top'), ['quick-links', 'categories', 'rails', 'collection-rows', 'look-inside', 'faq'].filter((t) => defaultOrder.includes(t)), 'default order is the storefront as it was');
   await addSection('Rich text');
   await page.locator('input[name="s.heading"]').fill('Check heading');
   await page.locator('input[name="s.text_color"]').fill('#aa0000');

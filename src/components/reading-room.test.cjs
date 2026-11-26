@@ -123,7 +123,7 @@ const CardView = load("components/BookCard.tsx", {
 }).default;
 const cardHtml = renderToStaticMarkup(React.createElement(CardView, { book: saleBook, enabled: true }));
 assert.match(cardHtml, /data-book-card/);
-assert.match(cardHtml, /Add to bag/);
+assert.match(cardHtml, /Add to cart/);
 assert.match(cardHtml, /href="\/products\/real-book"/);
 assert.doesNotMatch(cardHtml, /private\/never-expose/);
 const dataCover = renderToStaticMarkup(React.createElement(CardView, { book: { ...saleBook, cover: "data:image/svg+xml;utf8,%3Csvg%3E" }, enabled: true }));
@@ -214,10 +214,10 @@ async function checkPausedSelection() {
   const props = { slug: pendingBook.slug, title: pendingBook.title, enabled: false, saleable: pendingBook.saleable, saveable: pendingBook.saveable };
   const button = AddToCart(props).props.children[0];
   assert.equal(button.props.disabled, false);
-  assert.equal(button.props["aria-label"], `Save to bag: ${pendingBook.title}`);
+  assert.equal(button.props["aria-label"], `Save for later: ${pendingBook.title}`);
   button.props.onClick();
   assert.deepEqual(cart.slugs, [pendingBook.slug]);
-  assert.match(renderToStaticMarkup(React.createElement(AddToCart, props)), /In your bag/);
+  assert.match(renderToStaticMarkup(React.createElement(AddToCart, props)), /In your cart/);
   const CartContents = load("app/(store)/cart/CartContents.tsx").default;
   const selected = renderToStaticMarkup(React.createElement(CartContents, { books: [pendingBook], enabled: false }));
   assert.match(selected, /Actual title/);

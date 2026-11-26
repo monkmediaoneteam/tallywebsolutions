@@ -11,12 +11,12 @@ import HeroCampaign from "@/components/home/HeroCampaign";
 import CategoryTiles from "@/components/home/CategoryTiles";
 import Featured from "@/components/home/Featured";
 import LookInside from "@/components/home/LookInside";
-import LanguageStrip from "@/components/home/LanguageStrip";
 import FaqGrid from "@/components/home/FaqGrid";
 import HomeSide from "@/components/home/HomeSide";
 import ShopStrip from "@/components/home/ShopStrip";
 import { ImageOverlay, ImageText, RichText } from "@/components/home/ContentSections";
 import { SectionList } from "@/components/home/BannerSectionView";
+import CollectionRows from "@/components/home/CollectionRows";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() { return seoMetadata("/"); }
@@ -62,8 +62,8 @@ export default async function Home() {
         usedSlots.add(position);
         return <SectionList list={at(position)} wrap="wrap section" />;
       }
+      case "collection-rows": return <CollectionRows collections={content.collections} books={books} enabled={enabled} heading={str(o.heading)} subheading={str(o.subheading)} limit={num(o.limit, 10)} cardWidth={num(o.card_width, 216)} />;
       case "look-inside": return <LookInside books={books} heading={str(o.heading)} subheading={str(o.subheading)} limit={num(o.limit, 8)} />;
-      case "languages": return <LanguageStrip languages={home.languages} heading={str(o.heading)} />;
       case "faq":
         return <FaqGrid items={blocks.map((b) => ({ question: str(b.settings.question), answer: str(b.settings.answer) })).filter((x) => x.question)} heading={str(o.heading)} columns={Number(o.columns) || 2} />;
       case "image-overlay": return <ImageOverlay settings={o} />;

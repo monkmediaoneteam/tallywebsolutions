@@ -1,0 +1,26 @@
+/* Packs: collection rows on the home page and the collection pages.
+   Desktop shows ten products per row, as two rows of five. Phones and tablets show two or three per row. */
+.pack-rows { display: grid; gap: 48px; }
+.pack-row-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.pack-row-head h3 { font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
+.pack-row-head p { margin-top: 6px; color: var(--ink-soft); font-size: 15px; }
+.pack-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.pack-grid > li { min-width: 0; }
+.pack-grid .book-card { height: 100%; }
+@media (min-width: 760px) { .pack-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; } }
+@media (min-width: 1100px) { .pack-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+.collection-page .pack-head { display: grid; gap: 10px; margin: 8px 0 28px; }
+.collection-page h1 { font-size: clamp(32px, 4vw, 52px); font-weight: 600; letter-spacing: -.04em; line-height: 1.02; }
+.pack-lede { max-width: 60ch; color: var(--ink-soft); font-size: 17px; }
+.pack-offer { color: var(--brand); font-weight: 500; font-size: 15px; }
+.pack-cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+@media (min-width: 760px) { .pack-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .pack-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.pack-card { display: grid; grid-template-rows: auto 1fr; height: 100%; overflow: hidden; }
+.pack-thumbs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 12px; background: var(--bg-2); }
+.pack-card-body { display: grid; align-content: start; gap: 8px; padding: 16px 18px 18px; }
+.pack-card-title { font-size: 19px; font-weight: 600; letter-spacing: -.02em; line-height: 1.2; }
+.pack-card-text { color: var(--ink-soft); font-size: 15px; }
+.pack-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; color: var(--ink-mute); font-size: 14px; }
+.pack-card-go { display: inline-flex; align-items: center; gap: 6px; color: var(--brand); font-weight: 500; }
+.pack-empty { padding: 22px 24px; border: 1px dashed var(--line-2); border-radius: 16px; color: var(--ink-soft); font-size: 15px; }
