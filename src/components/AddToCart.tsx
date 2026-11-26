@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { MAX_CART_ITEMS } from "@/lib/cart-limits";
 import { Check, ShoppingBag } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useCart } from "./CartProvider";
@@ -10,7 +11,7 @@ export default function AddToCart({ slug, title, enabled, saleable, saveable, va
   const cart = useCart();
   const reduced = useReducedMotion();
   const added = cart.slugs.includes(slug);
-  const full = cart.slugs.length >= 20;
+  const full = cart.slugs.length >= MAX_CART_ITEMS;
   const canSave = saleable || (!enabled && saveable);
   const label = !canSave ? "Unavailable" : full ? "Cart is full" : enabled ? "Add to cart" : "Save for later";
   return <div className="cart-control">

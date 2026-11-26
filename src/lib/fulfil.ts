@@ -100,6 +100,7 @@ export async function fulfilOrder(ref: string, paymentId: string | null): Promis
   if (Array.isArray(order.offers) && order.offers.length) await sql`
     insert into offer_redemptions (offer_id, order_id, email, discount)
     select x->>'id', ${order.id}, ${order.email}, (x->>'saving')::int from jsonb_array_elements(${JSON.stringify(order.offers)}::jsonb) x
+    where x->>'id' not like 'pack:%'
     on conflict (offer_id, order_id) do nothing
   `;
   if (!dev) await retryOrderEmail(order.id);

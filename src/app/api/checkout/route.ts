@@ -1,4 +1,5 @@
 import { normaliseFileType } from "@/lib/file-types";
+import { MAX_CART_ITEMS } from "@/lib/cart-limits";
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { sql, getBook, type Book, type Order } from "@/lib/db";
@@ -37,10 +38,10 @@ export async function POST(req: Request) {
   const key = headerKey || bodyKey;
   if (typeof key !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(key)) return reply("A valid idempotency key is required.", 400);
   const slugs = body.slugs === undefined ? [body.slug] : body.slugs;
-  if (!Array.isArray(slugs) || slugs.length < 1 || slugs.length > 20 ||
+  if (!Array.isArray(slugs) || slugs.length < 1 || slugs.length > MAX_CART_ITEMS ||
       slugs.some(s => typeof s !== "string" || !/^[a-z0-9][a-z0-9_-]{0,100}$/.test(s)) ||
       new Set(slugs).size !== slugs.length || (body.slugs !== undefined && body.slug !== undefined))
-    return reply("Choose between one and twenty distinct products.", 400);
+    return reply(`Choose between one and ${MAX_CART_ITEMS} distinct products.`, 400);
   if (typeof body.name !== "string" || typeof body.email !== "string" || typeof body.phone !== "string" ||
       body.email.length > 254 || body.phone.length > 32) return reply("Invalid customer details.", 400);
   if ((body.coupon !== undefined && (typeof body.coupon !== "string" || body.coupon.length > 40)) ||

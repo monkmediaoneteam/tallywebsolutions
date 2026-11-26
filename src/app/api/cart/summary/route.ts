@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { MAX_CART_ITEMS } from "@/lib/cart-limits";
 import { getBook, type Book } from "@/lib/db";
 import { checkOrigin } from "@/lib/reader-auth";
 import { publicBook, visibleBook } from "@/components/book-data";
@@ -13,7 +14,7 @@ export async function POST(req: Request) {
   if (!checkOrigin(req)) return NextResponse.json({ error: "Invalid origin." }, { status: 403 });
   let slugs: unknown, coupon: unknown;
   try { const text = await req.text(); if (text.length > 4000) throw new Error(); ({ slugs, coupon } = JSON.parse(text) ?? {}); } catch { return NextResponse.json({ error: "Bad request." }, { status: 400 }); }
-  if (!Array.isArray(slugs) || slugs.length > 20 || slugs.some((s) => typeof s !== "string" || !SLUG.test(s))) return NextResponse.json({ error: "Bad request." }, { status: 400 });
+  if (!Array.isArray(slugs) || slugs.length > MAX_CART_ITEMS || slugs.some((s) => typeof s !== "string" || !SLUG.test(s))) return NextResponse.json({ error: "Bad request." }, { status: 400 });
   if (coupon !== undefined && coupon !== null && (typeof coupon !== "string" || coupon.length > 40)) return NextResponse.json({ error: "Bad request." }, { status: 400 });
   const now = new Date();
   const rows = (await Promise.all([...new Set(slugs as string[])].map(getBook))).filter((b): b is Book => !!b && visibleBook(b));

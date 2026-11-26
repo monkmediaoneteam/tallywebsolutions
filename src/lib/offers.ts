@@ -99,7 +99,8 @@ function evaluate(offer: Offer, lines: Work[]): Result {
 
 /** Labels a book shows: live offers that can apply to it (whole-order offers are not shown per book). */
 export function offerBadges(line: CartLine, offers: Offer[], now: Date): string[] {
-  return [...new Set(offers.filter((o) => o.scope !== "order" && isLive(o, now) && eligible(o, line))
+  // A pack offer needs the whole pack in the cart, so it is not a flag on any one product.
+  return [...new Set(offers.filter((o) => o.scope !== "order" && !o.id.startsWith("pack:") && isLive(o, now) && eligible(o, line))
     .sort((a, b) => Number(!!a.code) - Number(!!b.code)).map(offerBadge))];
 }
 
