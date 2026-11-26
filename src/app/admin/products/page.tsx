@@ -56,7 +56,7 @@ export default async function AdminProducts({
     return `/admin/products${query ? `?${query}` : ""}`;
   };
 
-  const create = <CreateProduct />;
+  const create = <><a href="/admin/products/bulk-files" className="btn btn-ghost">Update files from a zip</a><CreateProduct /></>;
 
   return (
     <AdminShell active="books" title="Products" subtitle={`${all.length} products · ${counts["on-sale"]} on sale`} actions={create}>

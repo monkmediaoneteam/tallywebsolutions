@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { EMPTY_CHOICES, LAYOUTS, LIMITS, POSITIONS, SIZE_PRESETS, type BannerSection, type Layout } from "@/lib/banner-sections";
+import { EMPTY_CHOICES, LAYOUTS, LIMITS, PHONE_SHAPES, POSITIONS, SHAPES, ratioName, sameShape, type BannerSection, type Layout } from "@/lib/banner-sections";
 
 const input = "field-input mt-1";
 const num = (name: string, label: string, value: number, set: (n: number) => void, [min, max]: readonly [number, number], hint?: string) =>
@@ -12,11 +12,12 @@ const num = (name: string, label: string, value: number, set: (n: number) => voi
 function Preview({ layout, max, columns, width, height, fit, images }: { layout: Layout; max: number; columns: number; width: number; height: number; fit: string; images: { src: string; title: string }[] }) {
   const shape = width > 0 && height > 0 ? `${width} / ${height}` : "16 / 5";
   const n = Math.max(1, Math.min(layout === "single" || layout === "carousel" ? 1 : max || 1, layout === "grid" ? columns * 2 : 4));
+  const adapt = fit === "adapt";
   const frame = (i: number) => {
     const img = images[i];
     return img
-      ? <div key={i} className="overflow-hidden rounded-lg border border-line bg-bg-2" style={{ aspectRatio: shape }}>
-          <img src={img.src} alt={img.title} className="h-full w-full" style={{ objectFit: fit === "contain" ? "contain" : "cover" }} />
+      ? <div key={i} className="overflow-hidden rounded-lg border border-line bg-bg-2" style={adapt ? undefined : { aspectRatio: shape }}>
+          <img src={img.src} alt={img.title} className={adapt ? "block h-auto w-full" : "h-full w-full"} style={adapt ? undefined : { objectFit: fit === "contain" ? "contain" : "cover" }} />
         </div>
       : <div key={i} className="grid place-items-center rounded-lg border border-dashed border-line-2 bg-bg-2 p-2 text-center text-[11px] text-ink-soft" style={{ aspectRatio: shape }}>
           Empty slot {i + 1}<span className="block text-[10px]">{width}×{height}</span>
@@ -29,7 +30,7 @@ function Preview({ layout, max, columns, width, height, fit, images }: { layout:
       {layout === "carousel" && <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1" aria-hidden="true">
         {[0, 1, 2].map((i) => <span key={i} className={`h-1.5 rounded-full bg-ink-soft/60 ${i === 0 ? "w-4" : "w-1.5"}`} />)}</div>}
     </div>
-    <p className="mt-3 text-xs text-ink-soft">{images.length} of {max} live {images.length === 1 ? "banner" : "banners"} {images.length ? "shown here" : "yet"}. {layout === "carousel" ? "Rotating." : layout === "single" ? "One image." : layout === "grid" ? `${columns} across.` : "Stacked."} Images are {fit === "contain" ? "shown whole" : "cropped to fill the frame"}.</p>
+    <p className="mt-3 text-xs text-ink-soft">{images.length} of {max} live {images.length === 1 ? "banner" : "banners"} {images.length ? "shown here" : "yet"}. {layout === "carousel" ? "Rotating." : layout === "single" ? "One image." : layout === "grid" ? `${columns} across.` : "Stacked."} Images are {fit === "adapt" ? "shown whole, at their own shape" : fit === "contain" ? "shown whole" : "cropped to fill the frame"}.</p>
   </div>;
 }
 
@@ -45,6 +46,10 @@ export default function SectionForm({ section, isNew, returnTo, doneTo, images =
   const [autoplay, setAutoplay] = useState(section.autoplay);
   const [fit, setFit] = useState<string>(section.fit);
   const [position, setPosition] = useState<string>(section.position);
+  const adapt = fit === "adapt";
+  // A saved size that is not one of the common shapes opens in Custom.
+  const [customDesktop, setCustomDesktop] = useState(() => !SHAPES.some((s) => sameShape(section.width, section.height, s.width, s.height)));
+  const [customPhone, setCustomPhone] = useState(() => !PHONE_SHAPES.some((s) => sameShape(section.mobileWidth, section.mobileHeight, s.width, s.height)));
   const empties = EMPTY_CHOICES[position as keyof typeof POSITIONS];
 
   return <form action="/api/admin/platform/content" method="post" className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -81,20 +86,36 @@ export default function SectionForm({ section, isNew, returnTo, doneTo, images =
           {empties.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       </fieldset>
 
-      <fieldset className="grid gap-4 sm:grid-cols-2">
-        <legend className="mb-1 text-base font-semibold">Image settings</legend>
-        <div className="sm:col-span-2">
-          <p className="text-sm">Size presets</p>
-          <div className="mt-1 flex flex-wrap gap-2">{SIZE_PRESETS.map((p) => <button key={p.label} type="button" className="btn btn-ghost min-h-9 px-3 py-1.5 text-sm"
-            aria-pressed={width === p.width && height === p.height}
-            onClick={() => { setWidth(p.width); setHeight(p.height); setMobileWidth(p.mobileWidth); setMobileHeight(p.mobileHeight); }}>{p.label}</button>)}</div>
+      <fieldset className="grid gap-5">
+        <legend className="mb-1 text-base font-semibold">Banner shape</legend>
+        <div>
+          <p className="text-sm font-medium">On computers and tablets</p>
+          <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Banner shape on computers and tablets">
+            <button type="button" className="btn btn-ghost min-h-9 px-3 py-1.5 text-sm" aria-pressed={adapt} onClick={() => { setFit("adapt"); setCustomDesktop(false); }}>Adapt to image</button>
+            {SHAPES.map((s) => <button key={s.label} type="button" className="btn btn-ghost min-h-9 px-3 py-1.5 text-sm" aria-pressed={!adapt && !customDesktop && sameShape(width, height, s.width, s.height)}
+              onClick={() => { setWidth(s.width); setHeight(s.height); setCustomDesktop(false); if (adapt) setFit("cover"); }}>{s.label}</button>)}
+            <button type="button" className="btn btn-ghost min-h-9 px-3 py-1.5 text-sm" aria-pressed={!adapt && customDesktop} onClick={() => { setCustomDesktop(true); if (adapt) setFit("cover"); }}>Custom</button>
+          </div>
+          <p className="mt-2 text-xs text-ink-soft">{adapt ? "Each banner takes its own image's shape and nothing is cropped. Several banners of different shapes in a rotating row make the row change height."
+            : `Upload images at ${width} × ${height} px (${ratioName(width, height)}).`}</p>
+          {adapt ? <><input type="hidden" name="width" value={width} /><input type="hidden" name="height" value={height} /></>
+            : customDesktop ? <div className="mt-3 grid gap-4 sm:grid-cols-2">{num("width", "Width, px", width, setWidth, LIMITS.width)}{num("height", "Height, px", height, setHeight, LIMITS.height, `Shape: ${ratioName(width, height) || "set a width and height"}.`)}</div>
+            : <><input type="hidden" name="width" value={width} /><input type="hidden" name="height" value={height} /></>}
         </div>
-        {num("width", "Image width, px", width, setWidth, LIMITS.width)}
-        {num("height", "Image height, px", height, setHeight, LIMITS.height, "Width and height set the banner's shape on screens wider than a phone.")}
-        {num("mobile_width", "Phone image width, px", mobileWidth, setMobileWidth, LIMITS.width)}
-        {num("mobile_height", "Phone image height, px", mobileHeight, setMobileHeight, LIMITS.height, "Shape on phones, for banners that have a phone image.")}
-        <label className="text-sm sm:col-span-2">Image fit<select name="fit" className={input} value={fit} onChange={(e) => setFit(e.target.value)}>
-          <option value="cover">Fill the frame: crop the edges if the shape differs</option><option value="contain">Show the whole image: leave empty margins if the shape differs</option></select></label>
+        <div>
+          <p className="text-sm font-medium">On phones <span className="font-normal text-ink-soft">(for banners that have a phone image)</span></p>
+          <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Banner shape on phones">
+            {PHONE_SHAPES.map((s) => <button key={s.label} type="button" className="btn btn-ghost min-h-9 px-3 py-1.5 text-sm" aria-pressed={!customPhone && sameShape(mobileWidth, mobileHeight, s.width, s.height)}
+              onClick={() => { setMobileWidth(s.width); setMobileHeight(s.height); setCustomPhone(false); }}>{s.label}</button>)}
+            <button type="button" className="btn btn-ghost min-h-9 px-3 py-1.5 text-sm" aria-pressed={customPhone} onClick={() => setCustomPhone(true)}>Custom</button>
+          </div>
+          {customPhone ? <div className="mt-3 grid gap-4 sm:grid-cols-2">{num("mobile_width", "Width, px", mobileWidth, setMobileWidth, LIMITS.width)}{num("mobile_height", "Height, px", mobileHeight, setMobileHeight, LIMITS.height, `Shape: ${ratioName(mobileWidth, mobileHeight) || "set a width and height"}.`)}</div>
+            : <><input type="hidden" name="mobile_width" value={mobileWidth} /><input type="hidden" name="mobile_height" value={mobileHeight} /></>}
+        </div>
+        {adapt ? <input type="hidden" name="fit" value="adapt" />
+          : <label className="text-sm">If an image is a different shape<select name="fit" className={input} value={fit} onChange={(e) => setFit(e.target.value)}>
+            <option value="cover">Fill the frame: crop the edges</option>
+            <option value="contain">Show the whole image: leave empty margins</option></select></label>}
       </fieldset>
 
       <div className="flex flex-wrap items-center gap-3">
