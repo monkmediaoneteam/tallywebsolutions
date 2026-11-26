@@ -70,7 +70,7 @@ assert.deepEqual(parseCart(null), []);
 assert.deepEqual(parseCart("not-json"), []);
 assert.deepEqual(parseCart('{"slug":"title"}'), []);
 assert.deepEqual(parseCart('["real-book","real-book",null,3,"../private","javascript:alert(1)","another-title"]'), ["real-book", "another-title"]);
-assert.equal(parseCart(JSON.stringify(Array.from({ length: 60 }, (_, i) => `book-${i}`))).length, 50);
+assert.equal(parseCart(JSON.stringify(Array.from({ length: 25 }, (_, i) => `book-${i}`))).length, 20);
 assert.equal(cartTotals([]), null);
 assert.equal(cartTotals([{ price_inr: -1 }]), null);
 assert.equal(cartTotals([{ price_inr: 2147483647 }, { price_inr: 1 }]), null);

@@ -12,12 +12,15 @@
 .collection-page .pack-head { display: grid; gap: 10px; margin: 8px 0 28px; }
 .collection-page h1 { font-size: clamp(32px, 4vw, 52px); font-weight: 600; letter-spacing: -.04em; line-height: 1.02; }
 .pack-lede { max-width: 60ch; color: var(--ink-soft); font-size: 17px; }
-.pack-buy { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; margin-bottom: 32px; padding: 20px 24px; }
+.pack-buy { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; margin-bottom: 36px; padding: 22px 26px; }
+.pack-buy-text { display: grid; gap: 6px; min-width: 0; }
 .pack-buy-label { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-mute); }
-.pack-buy-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin-top: 4px; }
-.pack-buy-price .price { font-size: 30px; letter-spacing: -.03em; }
-.pack-buy-was { color: var(--ink-mute); font-size: 16px; }
-.pack-buy-note { margin-top: 4px; color: var(--ink-soft); font-size: 14px; max-width: 52ch; }
+.pack-buy-title { font-size: 22px; font-weight: 600; letter-spacing: -.02em; line-height: 1.2; }
+.pack-buy-title:hover { color: var(--brand); }
+.pack-buy-note { color: var(--ink-soft); font-size: 14px; }
+.pack-buy-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.pack-inside { margin-bottom: 18px; font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
+.pack-offer { color: var(--brand); font-weight: 500; font-size: 15px; }
 .pack-cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 @media (min-width: 760px) { .pack-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 1100px) { .pack-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
