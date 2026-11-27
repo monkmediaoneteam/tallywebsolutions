@@ -17,6 +17,7 @@ assert.equal(allocate(2147483647, [99999999, 1]).reduce((a, b) => a + b, 0), 214
 
 // A book row is a bundle only if its facts say so.
 assert.equal(bundleSlugOf({ facts: { _bundle_of: 'sec' } }), 'sec');
+assert.equal(bundleSlugOf({ facts: { _pack_of: 'old' } }), 'old', 'a pack built by the earlier version is a bundle too');
 assert.equal(isBundle({ facts: {} }), false);
 assert.equal(isBundle({ facts: null }), false);
 

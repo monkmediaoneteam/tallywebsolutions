@@ -32,3 +32,14 @@
 .pack-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; color: var(--ink-mute); font-size: 14px; }
 .pack-card-go { display: inline-flex; align-items: center; gap: 6px; color: var(--brand); font-weight: 500; }
 .pack-empty { padding: 22px 24px; border: 1px dashed var(--line-2); border-radius: 16px; color: var(--ink-soft); font-size: 15px; }
+
+/* Descriptions written with the editor (lib/rich-text.ts). */
+.rich > :last-child { margin-bottom: 0; }
+.rich p { margin-bottom: 12px; line-height: 1.65; }
+.rich-h { margin: 18px 0 8px; font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
+.rich ul, .rich ol { margin: 0 0 12px; padding-left: 22px; }
+.rich ul { list-style: disc; }
+.rich ol { list-style: decimal; }
+.rich li { margin-bottom: 4px; line-height: 1.6; }
+.rich strong { font-weight: 600; color: var(--ink); }
+.rich-link { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }

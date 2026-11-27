@@ -2,6 +2,7 @@ import type { Book } from "./db";
 import { currentPrice } from "./money";
 import { saleable } from "./access-policy";
 import { STORE } from "./store";
+import { plainText } from "./rich-text";
 
 // A bundle is a collection sold as ONE product. It lives in the collection: the title, description, image and the products
 // inside are all managed there, and its price is the products' total less the bundle percent, worked out when it is read.
@@ -10,7 +11,11 @@ import { STORE } from "./store";
 
 export const BUNDLE_FILE_PREFIX = "bundle:";
 type HasFacts = { facts?: Record<string, string> | null };
-export const bundleSlugOf = (book: HasFacts): string | null => (typeof book.facts?._bundle_of === "string" && book.facts._bundle_of ? book.facts._bundle_of : null);
+// `_pack_of` is the name an earlier version used for the same thing, so packs already built become live bundles without any action.
+export const bundleSlugOf = (book: HasFacts & { facts?: Record<string, string> | null }): string | null => {
+  const v = book.facts?._bundle_of || book.facts?._pack_of;
+  return typeof v === "string" && v ? v : null;
+};
 export const isBundle = (book: HasFacts) => bundleSlugOf(book) !== null;
 
 export type BundleCollection = { slug: string; title: string; description: string | null; image_url: string | null; book_slugs: string[]; status: string; publish_at: string | null };
@@ -54,7 +59,7 @@ export function overlayBundle(row: Book, collection: BundleCollection | undefine
   const price = bundlePrice(current, percent);
   const names = parts.map((b) => b.title);
   return {
-    ...row, title: collection.title, description: collection.description, long_description: collection.description,
+    ...row, title: collection.title, description: collection.description ? plainText(collection.description).slice(0, 300) : null, long_description: collection.description,
     highlights: names, cover: collection.image_url ?? row.cover, price_inr: regular, sale_price_inr: price > 0 && price < regular ? price : null,
     sale_starts_at: null, sale_ends_at: null, file_url: `${BUNDLE_FILE_PREFIX}${collection.slug}`, file_format: "Bundle", file_size: `${parts.length} add-ons`,
     release_approved: true, scan_status: "clean", active: true, third_party: false,

@@ -24,7 +24,7 @@ export default async function AdminProducts({
   const needle = q.trim().toLowerCase().slice(0, 100);
   const filter = (status in PRODUCT_STATUSES ? status : "") as ProductStatus | "";
   const [rows, categories, sold] = await Promise.all([
-    sql`select * from books where coalesce(facts->>'_bundle_of', '') = '' order by sort, title`,
+    sql`select * from books where coalesce(facts->>'_bundle_of', facts->>'_pack_of', '') = '' order by sort, title`,
     sql`select slug,name from categories order by sort,name`,
     sql`select book_slug, count(*)::int as orders from downloads group by book_slug`,
   ]);

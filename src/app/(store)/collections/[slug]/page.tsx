@@ -7,6 +7,8 @@ import BookCard from "@/components/BookCard";
 import AddToCart from "@/components/AddToCart";
 import BuyNow from "@/components/BuyNow";
 import Price from "@/components/Price";
+import RichText from "@/components/RichText";
+import { plainText } from "@/lib/rich-text";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +27,7 @@ async function load(slug: string) {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const found = await load((await params).slug);
   if (!found) return { title: "Pack not found", robots: { index: false } };
-  return { title: found.collection.title, description: found.collection.description ?? undefined };
+  return { title: found.collection.title, description: plainText(found.collection.description).slice(0, 300) || undefined };
 }
 
 export default async function CollectionPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -38,7 +40,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ slu
     <header className="pack-head">
       <p className="eyebrow">Pack · {items.length} {items.length === 1 ? "TDL" : "TDLs"}</p>
       <h1>{collection.title}</h1>
-      {collection.description && <p className="pack-lede">{collection.description}</p>}
+      <RichText text={collection.description} className="pack-lede" />
     </header>
     {pack && <div className="pack-buy surface">
       <div className="pack-buy-text">

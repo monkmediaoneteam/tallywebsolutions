@@ -50,6 +50,13 @@ try {
   await rows(`update books set price_inr=40000 where slug='a'`);
   assert.equal((await dbModule.getBook('sec')).price_inr, 60000, 'a product price change flows through');
 
+  // A pack built by the earlier version (a ZIP product with its own file and a fixed price) reads as a live bundle.
+  await rows(`insert into content_collections(slug,title,description,book_slugs,status) values('old','Old Pack','From the ZIP days.','["a","b"]','published')`);
+  await rows(`insert into books(slug,title,price_inr,active,file_url,release_approved,scan_status,facts) values('old','Frozen ZIP',999900,true,'https://x.private.blob.vercel-storage.com/z.zip',true,'clean','{"_pack_of":"old"}')`);
+  const legacy = await dbModule.getBook('old');
+  assert.deepEqual([legacy.title, legacy.file_format, legacy.file_url, legacy.price_inr], ['Old Pack', 'Bundle', 'bundle:old', 60000], 'the old frozen price and file are replaced by the live bundle');
+  assert.deepEqual((await data.bundleParts([legacy])).get('old').map((x) => x.slug), ['a', 'b'], 'and checkout would deliver the products inside');
+
   // Hidden whenever it should not sell.
   await rows(`update content_collections set status='draft' where slug='sec'`);
   assert.equal((await dbModule.getBook('sec')).active, false, 'a draft collection does not sell');

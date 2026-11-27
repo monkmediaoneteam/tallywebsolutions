@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { getPublicContent } from "@/lib/content";
 import { getStoreBooks } from "@/lib/store-data";
 import ProductTile from "@/components/ProductTile";
+import { plainText } from "@/lib/rich-text";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Packs", description: "Bundles of TDL add-ons for one job, with a pack price." };
@@ -30,7 +31,7 @@ export default async function CollectionsPage() {
           <span className="pack-thumbs" aria-hidden="true">{items.slice(0, 3).map((b) => <span key={b.slug}><ProductTile src={b.cover} title={b.title} sizes="120px" /></span>)}</span>
           <span className="pack-card-body">
             <span className="pack-card-title">{c.title}</span>
-            {c.description && <span className="pack-card-text">{c.description}</span>}
+            {c.description && <span className="pack-card-text">{plainText(c.description)}</span>}
             <span className="pack-card-foot">{c.book_slugs.length} {c.book_slugs.length === 1 ? "add-on" : "add-ons"}<span className="pack-card-go">View pack <ArrowRight size={15} aria-hidden="true" /></span></span>
           </span>
         </Link></li>)}</ul>}
