@@ -94,7 +94,7 @@ export const SECTION_TYPES: SectionType[] = [
   {
     id: "quick-links", label: "Quick links", category: "Store sections", singleton: true, removable: true,
     description: "The row of shortcut buttons under the top area.",
-    fields: common([f("Layout", "columns", "range", "Columns on desktop", 6, { min: 2, max: 6, step: 1 })], COLOURS, sectionFields({ rounded: false })),
+    fields: common(COLOURS, sectionFields({ rounded: false })),
     blocks: { label: "Links", itemLabel: "Link", max: 12, titleField: "label", fields: [
       f("Content", "label", "text", "Label", "", { maxLength: 40 }), f("Content", "href", "url", "Link", "/search", { maxLength: 300 }),
       f("Content", "icon", "select", "Icon", "library", { options: ICONS })],
@@ -127,13 +127,13 @@ export const SECTION_TYPES: SectionType[] = [
     summary: (s) => ["bestsellers", "new", "offers", "soon"].filter((k) => s[`show_${k}`]).join(", ") || "No rows switched on",
   },
   {
-    id: "collection-rows", label: "Pack rows", category: "Store sections", singleton: true, removable: true,
-    description: "One swipeable row for each published pack (collection): its name, its one-line pitch, its first products and a link to the whole pack.",
+    id: "collection-rows", label: "Bundle rows", category: "Store sections", singleton: true, removable: true,
+    description: "One swipeable row for each bundle: its name and description, the bundle itself, and the TDLs inside it.",
     fields: common(heading("", { sub: "" }),
       [f("Layout", "limit", "range", "Products per row", 10, { min: 2, max: 12, step: 1 }),
         f("Layout", "card_width", "range", "Card width", 216, { min: 160, max: 320, step: 4, unit: "px", help: "A narrower card shows more of the row." })],
       COLOURS, sectionFields()),
-    summary: head("One row per pack"),
+    summary: head("One row per bundle"),
   },
   {
     id: "look-inside", label: "Look inside", category: "Store sections", singleton: true, removable: true,
@@ -145,7 +145,7 @@ export const SECTION_TYPES: SectionType[] = [
   {
     id: "faq", label: "Questions", category: "Store sections", singleton: true, removable: true,
     description: "Common questions, each opening to its answer.",
-    fields: common(heading("Good to know"), [f("Layout", "columns", "select", "Columns on desktop", "2", { options: [["1", "One"], ["2", "Two"]] })], COLOURS, sectionFields()),
+    fields: common(heading("Good to know"), COLOURS, sectionFields()),
     blocks: { label: "Questions", itemLabel: "Question", max: 20, titleField: "question", fields: [
       f("Content", "question", "text", "Question", "", { maxLength: 200 }), f("Content", "answer", "textarea", "Answer", "", { maxLength: 1000 })],
     defaults: [

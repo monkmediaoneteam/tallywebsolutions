@@ -18,6 +18,8 @@ import Morph, { morphName } from "@/components/motion/Morph";
 import SampleViewer from "@/components/product/SampleViewer";
 import Price from "@/components/Price";
 import RichText from "@/components/RichText";
+import { isBundle } from "@/lib/bundles";
+import { bundleParts } from "@/lib/bundle-data";
 import BookTabs from "@/components/product/BookTabs";
 import ShareButton from "@/components/product/ShareButton";
 import WishlistButton from "@/components/WishlistButton";
@@ -60,13 +62,15 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
   const others = records.filter((r) => r.slug !== book.slug && visibleBook(r)).map((r) => publicBook(r, now));
   const byAuthor = book.author_slug ? others.filter((o) => o.author_slug === book.author_slug).slice(0, 12) : [];
   const similar = others.filter((o) => o.category_slug && o.category_slug === book.category_slug && !byAuthor.includes(o)).slice(0, 12);
+  // A bundle shows the TDLs inside it (the ones that can be bought today).
+  const inside = isBundle(book) ? ((await bundleParts([book])).get(book.slug) ?? []).map((p) => publicBook(p, now)) : [];
   const details: [typeof BookOpen, string, string | number | null | undefined][] = [
     [FileText, "File type", book.file_format], [Layers, "File size", book.file_size], [BadgeCheck, "Released", releasedOn(view.release_date)],
   ];
   const facts = Object.entries(book.facts || {}).filter(([k]) => !k.startsWith("_"));
   const paragraphs = (book.long_description || "").split(/\n\s*\n/).filter(Boolean);
   const tabs = [
-    (paragraphs.length || book.description) && { id: "about", label: `About this ${STORE.itemWord}`, content: <div className="prose"><RichText text={paragraphs.length ? book.long_description : book.description} /></div> },
+    (paragraphs.length || book.description) && { id: "about", label: inside.length ? "About this bundle" : `About this ${STORE.itemWord}`, content: <div className="prose"><RichText text={paragraphs.length ? book.long_description : book.description} /></div> },
     view.highlights.length && { id: "contents", label: "Contents", content: <ul className="contents-list">{view.highlights.map((h, i) => <li key={i}>{h}</li>)}</ul> },
     facts.length && { id: "details", label: "More details", content: <table className="catalogue"><tbody>{facts.map(([k, v]) => <tr key={k}><th scope="row">{k}</th><td>{v}</td></tr>)}</tbody></table> },
   ].filter(Boolean) as { id: string; label: string; content: React.ReactNode }[];
@@ -74,7 +78,7 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(bookJsonLd(book, url, view.saleable, now)) }} />
     <SeoHead path={productPath(book.slug)} defaults={productDefaults(book)} />
     <div className="wrap">
-      <nav className="crumbs" aria-label="Breadcrumb"><Link href="/">Home</Link><span aria-hidden="true">/</span>{category && <><Link href={`/category/${category.slug}`}>{category.name}</Link><span aria-hidden="true">/</span></>}<span aria-current="page">{book.title}</span></nav>
+      <nav className="crumbs" aria-label="Breadcrumb"><Link href="/">Home</Link><span aria-hidden="true">/</span>{inside.length > 0 ? <><Link href="/bundles">Bundles</Link><span aria-hidden="true">/</span></> : category && <><Link href={`/category/${category.slug}`}>{category.name}</Link><span aria-hidden="true">/</span></>}<span aria-current="page">{book.title}</span></nav>
       <article className="product-main">
         <div className="product-gallery">
           <div className="gallery-stage plate surface-lit"><Morph name={morphName(book.slug)}><ProductTile src={book.cover} title={book.title} sizes="(max-width: 900px) 90vw, 440px" priority /></Morph></div>
@@ -85,7 +89,7 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
           {book.subtitle && <p className="product-subtitle">{book.subtitle}</p>}
           {book.authorship && !isStoreOwned(book.authorship) && <p className="product-author">by {book.authorship}</p>}
           <ul className="tag-row">{category && <li><Link className="chip" href={`/category/${category.slug}`}>{category.name}</Link></li>}
-            {book.file_format && <li><span className="chip">{book.file_format}</span></li>}
+            {inside.length > 0 ? <li><span className="chip">Bundle · {inside.length} TDLs</span></li> : book.file_format && <li><span className="chip">{book.file_format}</span></li>}
           </ul>
           <div className="buy-panel surface surface-lit">
             <Price book={view} size="page" />
@@ -93,7 +97,7 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
             <div className="buy-row"><BuyNow slug={book.slug} title={book.title} enabled={enabled} saleable={view.saleable} />
               <AddToCart slug={book.slug} title={book.title} enabled={enabled} saleable={view.saleable} saveable={view.saveable} variant="page" /></div>
             {!enabled && <p className="notice">Ordering opens soon. Save it for later.</p>}
-            <ul className="ticks">{[[Download, "Instant download"], [Lock, "Secure payment"], [BadgeCheck, "Licensed to you"], [Lifetime, "Lifetime validity"]].map(([Icon, label]) =>
+            <ul className="ticks">{[[Download, inside.length ? "One ZIP with every TDL" : "Instant download"], [Lock, "Secure payment"], [BadgeCheck, "Licensed to you"], [Lifetime, "Lifetime validity"]].map(([Icon, label]) =>
               <li key={label as string}><Icon size={16} aria-hidden="true" /><span>{label as string}</span></li>)}</ul>
           </div>
           <dl className="detail-strip">{details.filter(([, , v]) => v).map(([Icon, label, value]) => <div key={label}><dt><Icon size={14} aria-hidden="true" />{label}</dt><dd>{value}</dd></div>)}</dl>
@@ -101,6 +105,8 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
       </article>
       <SectionList list={sectionsAt(banners, "product-below-details")} wrap="section" />
       <BookTabs tabs={tabs} />
+      {inside.length > 0 && <div className="section"><h2 className="pack-inside">Inside this bundle · {inside.length} TDLs</h2>
+        <ul className="pack-grid">{inside.map((b) => <li key={b.slug}><BookCard book={b} enabled={enabled} /></li>)}</ul></div>}
       <SectionList list={sectionsAt(banners, "product-below-tabs")} wrap="section" />
       {byAuthor.length > 0 && !isStoreOwned(book.authorship) && <div className="section"><Carousel title={`More by ${book.authorship}`}>{byAuthor.map((b) => <BookCard key={b.slug} book={b} enabled={enabled} />)}</Carousel></div>}
       {similar.length > 0 && <div className="section"><Carousel title="Similar add-ons" href={category ? `/category/${category.slug}` : "/search"}>{similar.map((b) => <BookCard key={b.slug} book={b} enabled={enabled} />)}</Carousel></div>}

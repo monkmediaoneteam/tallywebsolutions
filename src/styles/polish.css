@@ -1,9 +1,5 @@
 /* Storefront polish. Loaded last. */
 
-/* FAQ: one column, same width and gap for every card. Two columns left ragged gaps whenever one card opened. */
-.faq-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: stretch; max-width: 860px; }
-.faq-item summary { min-height: 64px; }
-
 /* Product page image: the picture itself, at its own shape. No tinted frame and no second box behind it. */
 .gallery-stage { display: block; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
 .gallery-stage::before, .gallery-stage::after { content: none; }

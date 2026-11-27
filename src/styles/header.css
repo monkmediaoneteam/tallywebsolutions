@@ -50,7 +50,7 @@
   .mega-covers a:hover { transform: translateY(-4px); }
   .mega-covers img { width: 100%; height: auto; border-radius: 2px; box-shadow: var(--shadow-e2); }
   @keyframes drop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
-  @media (max-width: 900px) { .footer-top { grid-template-columns: 1fr 1fr; } .footer-top > :first-child { grid-column: 1 / -1; } .trust-row { grid-template-columns: 1fr 1fr; } .icon-label { display: none; } .header-icons a { height: 44px; padding-inline: 6px; } }
+  @media (max-width: 900px) { .footer-top { grid-template-columns: 1fr 1fr; } .footer-top > :first-child { grid-column: 1 / -1; } .icon-label { display: none; } .header-icons a { height: 44px; padding-inline: 6px; } }
   @media (max-width: 640px) { .utility-links, .utility-perks span + span { display: none; } }
   /* Below wide desktop the category row scrolls instead of overflowing; hover panels need the full width. */
   @media (max-width: 1180px) {

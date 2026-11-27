@@ -21,7 +21,7 @@ const nav: { key: AdminSection; label: string; href: string; icon: Icon; group: 
   { key: "books", label: "Products", href: "/admin/products", icon: Package, group: "Store" },
   { key: "offers", label: "Offers", href: "/admin/offers", icon: Tag, group: "Store" },
   { key: "categories", label: "Categories", href: "/admin/categories", icon: FolderTree, group: "Store" },
-  { key: "collections", label: "Collections", href: "/admin/platform/collections", icon: Layers, group: "Content" },
+  { key: "collections", label: "Bundles", href: "/admin/platform/collections", icon: Layers, group: "Content" },
   { key: "banners", label: "Banners", href: "/admin/banners", icon: Image, group: "Content" },
   { key: "seo", label: "SEO", href: "/admin/seo", icon: Search, group: "Content" },
   { key: "homepage", label: "Homepage sections", href: "/admin/homepage", icon: LayoutList, group: "Content" },

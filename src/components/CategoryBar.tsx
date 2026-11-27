@@ -13,7 +13,7 @@ export default function CategoryBar({ nav, previews }: { nav: { primary: NavCate
       <div className="mega-panel mega-all">{all.map((c) => <div key={c.slug} className="mega-links"><Link className="mega-head" href={`/category/${c.slug}`}>{c.name}</Link>
         {c.children.map((child) => <Link key={child.slug} href={`/category/${child.slug}`}>{child.name}</Link>)}</div>)}</div></div>
       : <Link href="/search">All add-ons</Link>}
-    <Link href="/collections">Packs</Link>
+    <Link href="/bundles">Bundles</Link>
     <Link href="/search?sort=new">New arrivals</Link>
     <Link href="/search?sort=popular">Bestsellers</Link>
     {nav.primary.map((c) => {

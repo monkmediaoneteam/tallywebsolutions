@@ -17,6 +17,7 @@ export async function recoverDelivery(orderId: string, action: string, reason: s
   }
   if (action === 'snapshot') {
     const item = order.items.find(item => item.slug === slug);
+    if (item?.includes) throw new RecoveryError('A bundle checks each file it includes when it is downloaded, so there is nothing to restore.');
     const book = await getBook(slug);
     if (!item || item.file_sha256 || !book || !isSaleable(book) || !['paid', 'fulfilled'].includes(order.status)
       || typeof book.file_sha256 !== 'string' || book.file_sha256.length !== 64 || !/^[a-f0-9]{64}$/i.test(book.file_sha256)

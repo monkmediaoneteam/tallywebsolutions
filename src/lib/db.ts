@@ -94,7 +94,9 @@ export type Book = {
   release_date?: string | null;
 };
 
-export type OrderItem = { slug: string; title: string; bundle?: string; price: number; discount?: number; file_url?: string | null; file_format?: string | null; edition?: string | null; file_sha256?: string | null; list_price?: number };
+export type BundledFile = { slug: string; title: string; name: string; file_url: string | null; file_format: string | null; file_sha256?: string | null };
+/** `includes` is set on a bundle: the files (as they were when it was bought) that its ZIP is made from. */
+export type OrderItem = { slug: string; title: string; includes?: BundledFile[]; price: number; discount?: number; file_url?: string | null; file_format?: string | null; edition?: string | null; file_sha256?: string | null; list_price?: number };
 
 export type Order = {
   id: string;
