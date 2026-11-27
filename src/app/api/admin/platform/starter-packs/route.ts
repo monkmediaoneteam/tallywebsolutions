@@ -4,6 +4,7 @@ import { isAdmin } from "@/lib/admin-auth";
 import { checkOrigin } from "@/lib/reader-auth";
 import { sql } from "@/lib/db";
 import { planStarterPacks } from "@/lib/starter-packs";
+import { ensureBundleRows } from "@/lib/content";
 
 export const runtime = "nodejs";
 
@@ -24,7 +25,8 @@ export async function POST(req: Request) {
       created += rows.length;
       live.push(p.slug);
     }
-    // The pack price (a percent off when the whole pack is bought) is built in: see lib/packs.ts. Nothing to set up here.
+    // Each new bundle gets its product row at once, so it is for sale as soon as it has two TDLs on sale.
+    await ensureBundleRows();
     const missing = new Set(plan.slice(0, -1).flatMap((p) => p.missing)).size;
     revalidatePath("/", "layout");
     revalidatePath("/admin/platform");

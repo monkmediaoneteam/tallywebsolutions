@@ -134,23 +134,38 @@ try {
       assert.equal((await getOrder((await after.json()).orderId)).total, 19900, 'expired sale charges the regular price');
     } finally { delete a.sale_price_inr; delete a.sale_starts_at; delete a.sale_ends_at; }
   });
-  await check('a bundle is one priced line and becomes its products, each with its own file', async () => {
+  await check('a bundle is ONE order line with its own price, and its download is one ZIP of the files it included', async () => {
     // The bundle as the store reads it: ₹498 of products sold for ₹473 (5% less, whole rupees).
-    const made = [];
     books.set('bundle-x', { slug: 'bundle-x', title: 'Pack X', price_inr: 49800, sale_price_inr: 47300, sale_starts_at: null, sale_ends_at: null, active: true,
-      file_url: 'bundle:bundle-x', file_format: 'Bundle', release_approved: true, scan_status: 'clean', facts: { _bundle_of: 'bundle-x' } });
+      file_url: 'bundle:bundle-x', file_format: 'ZIP', release_approved: true, scan_status: 'clean', facts: { _bundle_of: 'bundle-x' } });
+    const made = [];
     try {
       const response = await checkout.POST(request('checkout-bundle-0001', { slugs: ['bundle-x'] }));
       assert.equal(response.status, 200);
       const bundleOrderId = (await response.json()).orderId; made.push(bundleOrderId);
       const order = await getOrder(bundleOrderId);
       assert.equal(order.total, 47300, 'the customer pays the bundle price');
-      assert.deepEqual(order.items.map(i => i.slug), ['book-a', 'book-b'], 'the order holds the products inside, not the bundle');
-      assert.equal(order.items.reduce((s, i) => s + i.price, 0), 47300, 'the shares add up exactly');
-      assert.deepEqual(order.items.map(i => i.list_price), [19900, 29900]);
-      assert.deepEqual(order.items.map(i => i.file_url), ['https://files.example.com/book.pdf', 'https://files.example.com/book.epub'], 'each product keeps its own file');
-      assert.ok(order.items.every(i => i.bundle === 'Pack X'), 'the order remembers which bundle it came from');
-      assert.ok(order.items[0].price < order.items[1].price, 'the dearer product carries the bigger share');
+      assert.equal(order.items.length, 1, 'one line in the order, not one per product');
+      const [item] = order.items;
+      assert.deepEqual([item.slug, item.title, item.price, item.list_price, item.file_format], ['bundle-x', 'Pack X', 47300, 49800, 'ZIP']);
+      assert.deepEqual(item.includes.map(i => i.slug), ['book-a', 'book-b'], 'it remembers which products it included');
+      assert.deepEqual(item.includes.map(i => i.file_url), ['https://files.example.com/book.pdf', 'https://files.example.com/book.epub'], 'and their files as they were when it was bought');
+      assert.deepEqual(item.includes.map(i => i.name), ['<Book A>.pdf', 'Book B.epub'], 'with the names they have inside the ZIP');
+      // Paid: one entitlement for the bundle; the download is one ZIP made from the files, each checked against its checksum.
+      await sql`update orders set status = 'fulfilled', paid_at = now() where id = ${bundleOrderId}`;
+      await sql`insert into downloads (order_id, book_slug) values (${bundleOrderId}, 'bundle-x')`;
+      const zipped = await download.GET(new Request(`https://example.com/api/download?t=${token.mintDownloadToken(bundleOrderId, 'bundle-x')}`));
+      assert.equal(zipped.status, 200);
+      assert.equal(zipped.headers.get('content-type'), 'application/zip');
+      assert.match(zipped.headers.get('content-disposition'), /filename="bundle-x.zip"/);
+      const { unzipSync } = await import('fflate');
+      const files = unzipSync(new Uint8Array(await zipped.arrayBuffer()));
+      assert.deepEqual(Object.keys(files).sort(), ['<Book A>.pdf'.replace(/[<>]/g, ''), 'Book B.epub'].sort(), 'both files are in the ZIP');
+      assert.equal((await sql`select count from downloads where order_id = ${bundleOrderId} and book_slug = 'bundle-x'`)[0].count, 1, 'one download used');
+      // A file that no longer matches its checksum is never delivered.
+      const saved = servedPdfBytes; servedPdfBytes = changedPdfBytes;
+      try { assert.equal((await download.GET(new Request(`https://example.com/api/download?t=${token.mintDownloadToken(bundleOrderId, 'bundle-x')}`))).status, 503); }
+      finally { servedPdfBytes = saved; }
       // A bundle together with a product already inside it would deliver that product twice.
       assert.equal((await checkout.POST(request('checkout-bundle-0002', { slugs: ['bundle-x', 'book-a'] }))).status, 409);
       // A bundle with another product that is not inside it is fine.
@@ -159,11 +174,11 @@ try {
       assert.equal(mixed.status, 200);
       const mixedId = (await mixed.json()).orderId; made.push(mixedId);
       const mixedOrder = await getOrder(mixedId);
-      assert.deepEqual([mixedOrder.total, mixedOrder.items.map(i => i.slug)], [57300, ['book-a', 'book-b', 'book-c']]);
+      assert.deepEqual([mixedOrder.total, mixedOrder.items.map(i => i.slug)], [57300, ['bundle-x', 'book-c']]);
     } finally {
       books.delete('bundle-x'); books.delete('book-c');
       // These orders are only for this check: remove them so the store's hourly limit per email is left as it was.
-      for (const id of made) { await sql`delete from payment_attempts where order_id = ${id}`; await sql`delete from orders where id = ${id}`; }
+      for (const id of made) { await sql`delete from downloads where order_id = ${id}`; await sql`delete from payment_attempts where order_id = ${id}`; await sql`delete from orders where id = ${id}`; }
     }
   });
   await check('same checkout key creates no second payment link', async () => {

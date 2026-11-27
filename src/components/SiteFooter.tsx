@@ -8,7 +8,7 @@ const PAY = ["UPI", "Visa", "Mastercard", "RuPay", "Netbanking", "Wallets"];
 export default function SiteFooter({ name, categories }: { name: string; categories: { slug: string; name: string }[] }) {
   const [brand, by] = name.includes(" by ") ? [name.split(" by ")[0], name.split(" by ").slice(1).join(" by ")] : [name, ""];
   const cols: [string, [string, string][]][] = [
-    ["Shop", [[`All ${STORE.itemWord}s`, "/search"], ["Packs", "/collections"], ["New", "/search?sort=new"], ["Offers", "/search?offer=1"], ["Wishlist", "/wishlist"]]],
+    ["Shop", [[`All ${STORE.itemWord}s`, "/search"], ["Bundles", "/bundles"], ["New", "/search?sort=new"], ["Offers", "/search?offer=1"], ["Wishlist", "/wishlist"]]],
     ["Account", [["Library", "/library"], ["Bag", "/cart"], ["Sign in", "/login"]]],
     ["Help", [["Delivery", "/delivery-policy"], ["Refunds", "/refund-policy"], ["Privacy", "/privacy"], ["Terms", "/terms"]]],
   ];

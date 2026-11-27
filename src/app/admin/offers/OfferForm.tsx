@@ -40,11 +40,11 @@ export default function OfferForm({ offer, books, collections, categories }: {
         <label className="text-sm">for ₹<input name="bundle_price" inputMode="decimal" required value={draft.price} onChange={set("price")} className={input} /></label></>}
     </div>
     <fieldset className="grid gap-3"><legend className="mb-1 text-sm font-medium">Applies to</legend>
-      <div className="flex flex-wrap gap-2">{([["all", "All add-ons"], ["books", "Chosen products"], ["collection", "A collection"], ["category", "A category"], ["order", "Whole order"]] as const).map(([v, label]) =>
+      <div className="flex flex-wrap gap-2">{([["all", "All add-ons"], ["books", "Chosen products"], ["collection", "A bundle's TDLs"], ["category", "A category"], ["order", "Whole order"]] as const).map(([v, label]) =>
         <label key={v} className={`chip cursor-pointer ${scope === v ? "!bg-forest !text-cream" : ""}`}><input type="radio" name="scope" value={v} checked={scope === v} onChange={() => setScope(v)} className="sr-only" />{label}</label>)}</div>
       {scope === "books" && <BookPicker books={books} selected={offer?.scope === "books" ? offer.targets : []} />}
       {scope === "collection" && <select name="collection" required defaultValue={offer?.scope === "collection" ? offer.targets[0] : ""} className="field-input">
-        <option value="" disabled>Choose a collection</option>{collections.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}</select>}
+        <option value="" disabled>Choose a bundle</option>{collections.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}</select>}
       {scope === "category" && <select name="category" required defaultValue={offer?.scope === "category" ? offer.targets[0] : ""} className="field-input">
         <option value="" disabled>Choose a category</option>{categories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}</select>}
     </fieldset>

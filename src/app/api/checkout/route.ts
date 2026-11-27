@@ -1,9 +1,9 @@
 import { normaliseFileType } from "@/lib/file-types";
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
-import { sql, getBook, type Book, type Order } from "@/lib/db";
-import { computeTotals, currentPrice } from "@/lib/money";
-import { allocate } from "@/lib/bundles";
+import { sql, getBook, type Book, type Order, type OrderItem } from "@/lib/db";
+import { computeTotals } from "@/lib/money";
+import { partFileName } from "@/lib/bundles";
 import { bundleParts } from "@/lib/bundle-data";
 import { checkoutConfiguration, createPaymentLink, PaymentLinkCreationRejected } from "@/lib/razorpay";
 import { fulfilOrder } from "@/lib/fulfil";
@@ -141,20 +141,19 @@ export async function POST(req: Request) {
     const pricing = priceCart(lines, offers, { now, code: coupon || null, customer });
     if (body.expectedTotal !== undefined && body.expectedTotal !== pricing.total)
       return NextResponse.json({ error: "Prices changed.", pricing }, { status: 409 });
-    const items = books.flatMap((book, i) => {
+    const items = books.flatMap((book, i): OrderItem[] => {
       const line = pricing.lines[i], inside = parts.get(book!.slug);
       if (!inside) return [{
         slug: book!.slug, title: book!.title, price: line.price, discount: line.discount, list_price: book!.price_inr,
         file_url: book!.file_url, file_format: book!.file_format, file_sha256: book!.file_sha256,
         edition: book!.edition || null,
       }];
-      // The bundle's one price, and any offer on it, are shared out over its products in proportion to their prices.
-      const weights = inside.map(p => currentPrice(p, now).price);
-      const base = allocate(line.base, weights), off = allocate(line.discount, weights);
-      return inside.map((p, k) => ({
-        slug: p.slug, title: p.title, price: base[k] - off[k], discount: off[k], list_price: p.price_inr,
-        file_url: p.file_url, file_format: p.file_format, file_sha256: p.file_sha256, edition: p.edition || null, bundle: book!.title,
-      }));
+      // A bundle is ONE line with its own price. It keeps a snapshot of the files it includes; the download builds one ZIP from them.
+      return [{
+        slug: book!.slug, title: book!.title, price: line.price, discount: line.discount, list_price: book!.price_inr,
+        file_url: null, file_format: "ZIP", file_sha256: null, edition: null,
+        includes: inside.map(p => ({ slug: p.slug, title: p.title, name: partFileName(p), file_url: p.file_url, file_format: p.file_format, file_sha256: p.file_sha256 })),
+      }];
     });
     const { subtotal, tax } = computeTotals(pricing.lines.map(l => l.base));
     const total = pricing.total + tax;

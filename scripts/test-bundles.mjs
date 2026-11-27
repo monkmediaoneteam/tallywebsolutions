@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { bundlePrice, allocate, bundleSlugOf, isBundle, liveParts, overlayBundle } from '../src/lib/bundles.ts';
+import { bundlePrice, bundleConfig, bundleSlugOf, isBundle, liveParts, overlayBundle, partFileName } from '../src/lib/bundles.ts';
 
 // Price: the products' total less the percent, in whole rupees.
 assert.equal(bundlePrice(100000, 5), 95000, '₹1,000 less 5% is ₹950');
@@ -7,13 +7,17 @@ assert.equal(bundlePrice(24300, 5), 23100, 'rounded to a whole rupee (₹243 →
 assert.equal(bundlePrice(50000, 0), 50000);
 assert.equal(bundlePrice(0, 5), 0);
 assert.equal(bundlePrice(100000, 99), 10000, 'a percent above 90 is held at 90');
+assert.equal(bundlePrice(100000, 5, 80000), 80000, 'an exact price wins over the percent');
+assert.equal(bundlePrice(100000, 5, 100000), 95000, 'an exact price that is not a saving is ignored');
+assert.equal(bundlePrice(100000, 5, 120000), 95000, 'so is one above the total');
 
-// Splitting one amount across products: exact, in whole paise, leftover to the dearest.
-assert.equal(allocate(1000, [1, 1, 1]).reduce((a, b) => a + b, 0), 1000, 'always adds up');
-assert.deepEqual(allocate(95000, [25000, 25000, 50000]), [23750, 23750, 47500], 'in proportion to price');
-assert.deepEqual(allocate(0, [5, 5]), [0, 0]);
-assert.deepEqual(allocate(10, []), []);
-assert.equal(allocate(2147483647, [99999999, 1]).reduce((a, b) => a + b, 0), 2147483647, 'big amounts stay exact');
+// Each bundle keeps its own price rules.
+assert.deepEqual(bundleConfig({ facts: { _bundle_of: 'x' } }, 5), { percent: 5, fixed: null }, 'the store default when nothing is set');
+assert.deepEqual(bundleConfig({ facts: { _bundle_discount: '10', _bundle_price: '45000' } }, 5), { percent: 10, fixed: 45000 });
+assert.deepEqual(bundleConfig({ facts: { _bundle_discount: '95', _bundle_price: 'abc' } }, 5), { percent: 5, fixed: null }, 'bad values fall back');
+assert.equal(partFileName({ title: 'Cheque No. Tracking', file_format: 'TDL', facts: {} }), 'Cheque No. Tracking.tdl');
+assert.equal(partFileName({ title: 'X', file_format: 'TCP', facts: { _file_name: 'Real Name.tcp' } }), 'Real Name.tcp', 'the uploaded name wins');
+
 
 // A book row is a bundle only if its facts say so.
 assert.equal(bundleSlugOf({ facts: { _bundle_of: 'sec' } }), 'sec');
@@ -33,7 +37,12 @@ const live = overlayBundle(anchor, coll, pool, now, 5);
 assert.deepEqual([live.title, live.description, live.cover, live.active], ['Security Pack', 'Lock every door.', '/api/media/x', true], 'title, words and image come from the collection');
 assert.deepEqual([live.price_inr, live.sale_price_inr], [30000, 28500], 'the items add up to ₹300; the bundle is 5% less');
 assert.deepEqual(live.highlights, ['A', 'B'], 'what is inside');
-assert.ok(live.file_url.startsWith('bundle:') && live.release_approved && live.scan_status === 'clean', 'it can be bought; the file is a marker only');
+assert.ok(live.file_url.startsWith('bundle:') && live.release_approved && live.scan_status === 'clean' && live.file_format === 'ZIP', 'it can be bought; it is delivered as a ZIP');
+// A bundle with its own discount or exact price.
+const tenOff = overlayBundle({ ...anchor, facts: { _bundle_of: 'sec', _bundle_discount: '10' } }, coll, pool, now);
+assert.deepEqual([tenOff.price_inr, tenOff.sale_price_inr], [30000, 27000], 'its own percent');
+const exact = overlayBundle({ ...anchor, facts: { _bundle_of: 'sec', _bundle_price: '25000' } }, coll, pool, now);
+assert.deepEqual([exact.price_inr, exact.sale_price_inr], [30000, 25000], 'its own exact price');
 // Editing the collection changes the bundle at once.
 const grown = overlayBundle(anchor, { ...coll, book_slugs: ['a', 'b', 'e', 'x'] }, [...pool, book('x', 10000)], now, 5);
 assert.deepEqual([grown.price_inr, grown.sale_price_inr, grown.highlights], [40000, 38000, ['A', 'B', 'X']], 'add a product and the price follows');

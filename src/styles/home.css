@@ -41,10 +41,11 @@
   .side-cover { width: 96px; transform: rotate(4deg); transition: transform .5s var(--ease-out); filter: drop-shadow(0 14px 18px rgb(18 18 60 / .3)); }
   .side-cover img { width: 100%; height: auto; border-radius: 3px; }
   .side-card:hover .side-cover { transform: rotate(0) translateY(-4px) scale(1.04); }
-  .shop-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; padding-block: 16px; border-bottom: 1px solid var(--line); }
-  .shop-link { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; color: var(--ink); transition: color .2s; }
-  .shop-link:hover { color: var(--brand); }
-  .shop-icon { display: grid; place-items: center; flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px; background: var(--bg-2); color: var(--brand); transition: background .25s, color .25s; }
+  /* Quick links: pill buttons under the banner. */
+  .shop-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding-block: 20px 4px; }
+  .shop-link { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 18px 6px 6px; border: 1px solid var(--line-2); border-radius: 999px; background: #fff; font-size: 15px; font-weight: 500; color: var(--ink); transition: border-color .2s, background .2s, color .2s; }
+  .shop-link:hover { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 6%, #fff); color: var(--brand); }
+  .shop-icon { display: grid; place-items: center; flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: color-mix(in srgb, var(--brand) 10%, #fff); color: var(--brand); transition: background .2s, color .2s; }
   .shop-link:hover .shop-icon { background: var(--brand); color: #fff; }
   .home-grid { display: flex; flex-wrap: wrap; gap: 18px; }
   .home-grid > li { flex: 0 1 236px; min-width: 0; }
@@ -107,8 +108,15 @@
   .publish-stack img { width: 100%; height: auto; border-radius: 3px; }
   .publish-band:hover .publish-stack span:first-child:not(:only-child) { transform: rotate(-12deg) translate(-8px, 6px); }
   .publish-band:hover .publish-stack span:last-child:not(:only-child) { transform: rotate(12deg) translate(8px, 6px); }
-  .faq-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-  .faq-item summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 22px; font-weight: 500; list-style: none; cursor: pointer; }
+  .faq-layout { display: grid; grid-template-columns: minmax(220px, 340px) minmax(0, 1fr); gap: 32px clamp(32px, 6vw, 96px); align-items: start; }
+  .faq-intro { position: sticky; top: 130px; }
+  .faq-intro h2 { font-size: clamp(28px, 3.2vw, 44px); letter-spacing: -.04em; line-height: 1; }
+  .faq-intro p { margin-top: 14px; color: var(--ink-soft); font-size: 15px; }
+  .faq-intro a { color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
+  .faq-list { display: grid; gap: 12px; min-width: 0; }
+  .faq-item { border: 1px solid var(--line); border-radius: 14px; background: #fff; transition: border-color .2s, background .2s; }
+  .faq-item[open] { border-color: var(--line-2); background: var(--bg-2); }
+  .faq-item summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; padding: 18px 22px; font-weight: 500; list-style: none; cursor: pointer; }
   .faq-item summary::-webkit-details-marker { display: none; }
   .faq-item summary::after { content: "+"; color: var(--brand); font: 500 22px/1 var(--font-sans); transition: rotate .3s var(--ease-out); }
   .faq-item[open] summary::after { rotate: 45deg; }
@@ -116,7 +124,6 @@
   @media (max-width: 1100px) {
     .home-top { grid-template-columns: 1fr; }
     .home-side { grid-template-rows: none; grid-template-columns: 1fr 1fr; }
-    .shop-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
   @media (max-width: 900px) {
     .hero-grid { grid-template-columns: 1fr; gap: 12px; padding: 32px 22px 80px; min-height: 0; }
@@ -129,10 +136,11 @@
     .publish-stack { display: none; }
   }
   @media (max-width: 760px) {
-    .faq-grid { grid-template-columns: 1fr; }
+    .faq-layout { grid-template-columns: 1fr; }
+    .faq-intro { position: static; }
     .home-side { grid-template-columns: 1fr; }
-    .shop-strip { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
-    .shop-link { flex: 0 0 auto; }
+    .shop-strip { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; padding-bottom: 8px; }
+    .shop-link { flex: 0 0 auto; scroll-snap-align: start; }
     .tile-grid { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 42%; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-bottom: 6px; }
     .tile-grid > li { scroll-snap-align: start; }
     .hero-stage { height: 200px; }

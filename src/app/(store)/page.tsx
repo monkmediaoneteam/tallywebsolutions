@@ -5,7 +5,7 @@ import { buildHome, sectionsAt } from "@/lib/home";
 import type { Position } from "@/lib/banner-sections";
 import { getSiteSettings } from "@/lib/site-settings";
 import { resolveLayout, sectionFrame, type ResolvedSection } from "@/lib/home-sections";
-import { siteUrl } from "@/lib/store";
+import { siteUrl, STORE } from "@/lib/store";
 import { seoMetadata, SeoHead } from "@/lib/seo-meta";
 import HeroCampaign from "@/components/home/HeroCampaign";
 import CategoryTiles from "@/components/home/CategoryTiles";
@@ -48,7 +48,7 @@ export default async function Home() {
         </div>;
       }
       case "quick-links":
-        return <ShopStrip links={blocks.map((b) => ({ label: str(b.settings.label), href: str(b.settings.href), icon: str(b.settings.icon) })).filter((l) => l.label)} columns={num(o.columns, 6)} />;
+        return <ShopStrip links={blocks.map((b) => ({ label: str(b.settings.label), href: str(b.settings.href), icon: str(b.settings.icon) })).filter((l) => l.label)} />;
       case "categories":
         return <CategoryTiles tiles={home.categoryTiles.slice(0, num(o.limit, 12)).map(({ slug, name, count, image, covers: c }) => ({ slug, name, count, image, covers: c }))}
           heading={str(o.heading)} subheading={str(o.subheading)} linkLabel={str(o.link_label)} tileWidth={num(o.tile_width, 200)} />;
@@ -65,7 +65,7 @@ export default async function Home() {
       case "collection-rows": return <CollectionRows collections={content.collections} books={books} enabled={enabled} heading={str(o.heading)} subheading={str(o.subheading)} limit={num(o.limit, 10)} cardWidth={num(o.card_width, 216)} />;
       case "look-inside": return <LookInside books={books} heading={str(o.heading)} subheading={str(o.subheading)} limit={num(o.limit, 8)} />;
       case "faq":
-        return <FaqGrid items={blocks.map((b) => ({ question: str(b.settings.question), answer: str(b.settings.answer) })).filter((x) => x.question)} heading={str(o.heading)} columns={Number(o.columns) || 2} />;
+        return <FaqGrid items={blocks.map((b) => ({ question: str(b.settings.question), answer: str(b.settings.answer) })).filter((x) => x.question)} heading={str(o.heading)} supportEmail={STORE.supportEmail} />;
       case "image-overlay": return <ImageOverlay settings={o} />;
       case "image-text": return <ImageText settings={o} />;
       case "rich-text": return <RichText settings={o} />;
