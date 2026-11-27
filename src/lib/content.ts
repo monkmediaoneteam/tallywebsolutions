@@ -156,6 +156,11 @@ export async function saveContent(section: ContentSection, id: string, expected:
     const books = await sql`select slug from books where slug in (select jsonb_array_elements_text(${JSON.stringify(c.book_slugs)}::jsonb))`;
     if (books.length !== c.book_slugs.length) throw new ContentError("One or more selected products do not exist.");
     if (id && id !== c.slug) throw new ContentError("A saved collection slug cannot be changed.");
+    // Selling it as a bundle needs the collection's web address for the bundle's own product; an unrelated product must not hold it.
+    if (input.bundle === "on") {
+      const taken = await sql`select coalesce(facts->>'_bundle_of', facts->>'_pack_of') as bundle_of from books where slug=${c.slug}`;
+      if (taken.length && taken[0].bundle_of !== c.slug) throw new ContentError("A product already uses this web address, so this collection cannot also be sold as a bundle. Use a different web address for the collection.");
+    }
     rows = await sql`with changed as (
       insert into content_collections(slug,title,description,image_url,book_slugs,sort,status,publish_at)
       values(${c.slug},${c.title},${c.body},${c.image_url},${JSON.stringify(c.book_slugs)}::jsonb,${c.sort},${c.status},${c.publish_at}::timestamptz)
@@ -180,6 +185,18 @@ export async function saveContent(section: ContentSection, id: string, expected:
     select id from changed`;
   }
   if (!rows.length) throw new ContentError("Record changed. Reload before saving again.");
+  if (section === "collections") await syncBundle(c.slug, c.title, input.bundle === "on");
+}
+
+// "Sell as one bundle": the collection gets (or loses) its bundle product. The product is only an anchor; its title, words, image,
+// price and contents come from the collection each time it is read (see bundles.ts).
+async function syncBundle(slug: string, title: string, on: boolean) {
+  if (on) {
+    await sql`insert into books(slug,title,price_inr,active,release_approved,scan_status,facts)
+      values(${slug},${title},100,true,true,'clean',jsonb_build_object('_bundle_of',${slug}::text))
+      on conflict (slug) do update set active=true, title=${title}, facts=(coalesce(books.facts,'{}'::jsonb) - '_pack_of') || jsonb_build_object('_bundle_of',${slug}::text)
+      where coalesce(books.facts->>'_bundle_of', books.facts->>'_pack_of') = ${slug}`;
+  } else await sql`update books set active=false where slug=${slug} and coalesce(facts->>'_bundle_of', facts->>'_pack_of') = ${slug}`;
 }
 export async function deleteContent(section: ContentSection, id: string, expected: string) {
   if (!id || id.length > 120 || !Number.isFinite(Date.parse(expected))) throw new ContentError("Invalid record or edit version.");
@@ -188,6 +205,7 @@ export async function deleteContent(section: ContentSection, id: string, expecte
   else if (section === "authors") rows = await sql`with changed as (delete from author_profiles p where p.id=${id} and p.updated_at=${expected}::timestamptz and not exists(select 1 from publishing_submissions s where s.author_id=p.id) returning id), audit as (insert into publishing_audit(actor_id,action,payload) select 'admin','content.author.deleted',jsonb_build_object('id',id) from changed) select id from changed`;
   else rows = await sql`with changed as (delete from content_modules where id=${id} and updated_at=${expected}::timestamptz returning id), audit as (insert into publishing_audit(actor_id,action,payload) select 'admin','content.module.deleted',jsonb_build_object('id',id) from changed) select id from changed`;
   if (!rows.length) throw new ContentError("Record changed or has submissions. Reload before deleting.");
+  if (section === "collections") await sql`update books set active=false where slug=${id} and coalesce(facts->>'_bundle_of', facts->>'_pack_of') = ${id}`;
 }
 
 // Moves a module one place among modules of its type and renumbers them 0, 10, 20... in one audited statement.

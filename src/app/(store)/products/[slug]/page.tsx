@@ -17,6 +17,7 @@ import ProductTile from "@/components/ProductTile";
 import Morph, { morphName } from "@/components/motion/Morph";
 import SampleViewer from "@/components/product/SampleViewer";
 import Price from "@/components/Price";
+import RichText from "@/components/RichText";
 import BookTabs from "@/components/product/BookTabs";
 import ShareButton from "@/components/product/ShareButton";
 import WishlistButton from "@/components/WishlistButton";
@@ -65,7 +66,7 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
   const facts = Object.entries(book.facts || {}).filter(([k]) => !k.startsWith("_"));
   const paragraphs = (book.long_description || "").split(/\n\s*\n/).filter(Boolean);
   const tabs = [
-    (paragraphs.length || book.description) && { id: "about", label: `About this ${STORE.itemWord}`, content: <div className="prose">{(paragraphs.length ? paragraphs : [book.description!]).map((p, i) => <p key={i}>{p}</p>)}</div> },
+    (paragraphs.length || book.description) && { id: "about", label: `About this ${STORE.itemWord}`, content: <div className="prose"><RichText text={paragraphs.length ? book.long_description : book.description} /></div> },
     view.highlights.length && { id: "contents", label: "Contents", content: <ul className="contents-list">{view.highlights.map((h, i) => <li key={i}>{h}</li>)}</ul> },
     facts.length && { id: "details", label: "More details", content: <table className="catalogue"><tbody>{facts.map(([k, v]) => <tr key={k}><th scope="row">{k}</th><td>{v}</td></tr>)}</tbody></table> },
   ].filter(Boolean) as { id: string; label: string; content: React.ReactNode }[];

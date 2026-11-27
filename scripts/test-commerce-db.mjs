@@ -23,7 +23,9 @@ let liveOffers = [];
 const offerData = { loadOffers: async () => liveOffers, customerHistory: async () => ({ paidOrders: 0, uses: {} }),
   cartLines: async (list, now) => list.map((b) => { const p = load('src/lib/money.ts').currentPrice(b, now); return { slug: b.slug, price: p.price, regular: p.regular, categories: [], collections: [] }; }) };
 let blobReads = 0;
-const mocks = { '@/lib/offer-data': offerData, './db': db, '@/lib/db': db, '@/lib/reader-auth': readerAuth, '@vercel/blob': { get: async (_url, options) => {
+// A bundle's products are looked up in the collection; here every bundle holds book-a and book-b.
+const bundleData = { bundleParts: async list => new Map(list.filter(b => b.facts?._bundle_of).map(b => [b.slug, ['book-a', 'book-b'].map(s => books.get(s))])) };
+const mocks = { '@/lib/offer-data': offerData, '@/lib/bundle-data': bundleData, './db': db, '@/lib/db': db, '@/lib/reader-auth': readerAuth, '@vercel/blob': { get: async (_url, options) => {
   assert.equal(options.access, 'private');
   assert.equal(options.useCache, false);
   blobReads++;
@@ -131,6 +133,38 @@ try {
       const after = await checkout.POST(request('checkout-sale-0002', { slugs: ['book-a'] }));
       assert.equal((await getOrder((await after.json()).orderId)).total, 19900, 'expired sale charges the regular price');
     } finally { delete a.sale_price_inr; delete a.sale_starts_at; delete a.sale_ends_at; }
+  });
+  await check('a bundle is one priced line and becomes its products, each with its own file', async () => {
+    // The bundle as the store reads it: ₹498 of products sold for ₹473 (5% less, whole rupees).
+    const made = [];
+    books.set('bundle-x', { slug: 'bundle-x', title: 'Pack X', price_inr: 49800, sale_price_inr: 47300, sale_starts_at: null, sale_ends_at: null, active: true,
+      file_url: 'bundle:bundle-x', file_format: 'Bundle', release_approved: true, scan_status: 'clean', facts: { _bundle_of: 'bundle-x' } });
+    try {
+      const response = await checkout.POST(request('checkout-bundle-0001', { slugs: ['bundle-x'] }));
+      assert.equal(response.status, 200);
+      const bundleOrderId = (await response.json()).orderId; made.push(bundleOrderId);
+      const order = await getOrder(bundleOrderId);
+      assert.equal(order.total, 47300, 'the customer pays the bundle price');
+      assert.deepEqual(order.items.map(i => i.slug), ['book-a', 'book-b'], 'the order holds the products inside, not the bundle');
+      assert.equal(order.items.reduce((s, i) => s + i.price, 0), 47300, 'the shares add up exactly');
+      assert.deepEqual(order.items.map(i => i.list_price), [19900, 29900]);
+      assert.deepEqual(order.items.map(i => i.file_url), ['https://files.example.com/book.pdf', 'https://files.example.com/book.epub'], 'each product keeps its own file');
+      assert.ok(order.items.every(i => i.bundle === 'Pack X'), 'the order remembers which bundle it came from');
+      assert.ok(order.items[0].price < order.items[1].price, 'the dearer product carries the bigger share');
+      // A bundle together with a product already inside it would deliver that product twice.
+      assert.equal((await checkout.POST(request('checkout-bundle-0002', { slugs: ['bundle-x', 'book-a'] }))).status, 409);
+      // A bundle with another product that is not inside it is fine.
+      books.set('book-c', { ...books.get('book-a'), slug: 'book-c', title: 'Book C', price_inr: 10000 });
+      const mixed = await checkout.POST(request('checkout-bundle-0003', { slugs: ['bundle-x', 'book-c'] }));
+      assert.equal(mixed.status, 200);
+      const mixedId = (await mixed.json()).orderId; made.push(mixedId);
+      const mixedOrder = await getOrder(mixedId);
+      assert.deepEqual([mixedOrder.total, mixedOrder.items.map(i => i.slug)], [57300, ['book-a', 'book-b', 'book-c']]);
+    } finally {
+      books.delete('bundle-x'); books.delete('book-c');
+      // These orders are only for this check: remove them so the store's hourly limit per email is left as it was.
+      for (const id of made) { await sql`delete from payment_attempts where order_id = ${id}`; await sql`delete from orders where id = ${id}`; }
+    }
   });
   await check('same checkout key creates no second payment link', async () => {
     const before = creations;

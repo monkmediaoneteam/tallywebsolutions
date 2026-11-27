@@ -2,6 +2,7 @@ import BookCard from "../BookCard";
 import Carousel from "../Carousel";
 import type { PublicBook } from "../book-data";
 import type { Collection } from "@/lib/content";
+import { plainText } from "@/lib/rich-text";
 
 // One swipeable row per published pack, like the other product rows: the pack's name, its one-line pitch,
 // its first products (ten by default) and "See all" to the whole pack.
@@ -17,7 +18,7 @@ export default function CollectionRows({ collections, books, enabled, heading, s
     {heading && <div className="wrap section pack-intro"><h2>{heading}</h2>{subheading && <p>{subheading}</p>}</div>}
     {rows.map(({ c, items }) => <div className="wrap section" key={c.slug} data-card={cardWidth !== 216 ? "" : undefined}
       style={cardWidth !== 216 ? { "--card": `${cardWidth}px` } as React.CSSProperties : undefined}>
-      <Carousel title={c.title} tagline={c.description ?? undefined} href={`/collections/${encodeURIComponent(c.slug)}`}>
+      <Carousel title={c.title} tagline={plainText(c.description) || undefined} href={`/collections/${encodeURIComponent(c.slug)}`}>
         {items.map((b) => <BookCard key={b.slug} book={b} enabled={enabled} morph={false} />)}</Carousel>
     </div>)}
   </>;

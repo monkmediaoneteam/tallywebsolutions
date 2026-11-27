@@ -100,12 +100,12 @@ assert.deepEqual(offerBadges(cart[0], [save10, offer()], now), ['20% off', 'Code
       insert into categories(slug,name,parent_slug) values('ayur','Ayurveda','health') on conflict do nothing;
       insert into books(slug,title,price_inr,sale_price_inr,category_slug) values('x','X',30000,24000,'ayur');
       insert into content_collections(slug,title,book_slugs,status) values('picks','Picks','["x"]','published');
-      insert into offers(id,name,kind,scope,value,status) values('live','Live','percent','all',10,'active'),('old','Old','percent','all',10,'active'),('draft','Draft','percent','all',10,'draft');
+      insert into offers(id,name,kind,scope,value,status) values('starter-packs-5-percent','Pack offer: 5% off','percent','collection',5,'active'),('live','Live','percent','all',10,'active'),('old','Old','percent','all',10,'active'),('draft','Draft','percent','all',10,'draft');
       update offers set ends_at = now() - interval '1 day', starts_at = now() - interval '2 days' where id='old';
       insert into orders(id,email,subtotal,total,status) values('p1','Buyer@Example.com',100,100,'fulfilled'),('p2','buyer@example.com',100,100,'created');
       insert into offer_redemptions(offer_id,order_id,email,discount) values('live','p1','buyer@example.com',10);`);
     const offers = await data.loadOffers();
-    assert.deepEqual(offers.map((o) => o.id), ['live'], 'only active, unexpired offers load');
+    assert.deepEqual(offers.map((o) => o.id), ['live'], 'only active, unexpired offers load; the leftover per-product pack offer never does');
     assert.equal(offers[0].uses, 1); assert.ok(isLive(offers[0], new Date()), 'timestamps come back parseable');
     const [x] = await data.cartLines([(await db.query(`select * from books where slug='x'`)).rows[0]]);
     assert.deepEqual([x.price, x.regular, x.categories, x.collections], [24000, 30000, ['ayur', 'health'], ['picks']]);

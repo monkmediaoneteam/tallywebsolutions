@@ -1,6 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 import { requireEnv } from "./env";
 import { localDatabase } from './local-db';
+import { bundleSlugOf, overlayBundle, type BundleCollection } from "./bundles";
 
 /** Constructed lazily: the build collects page data without a database, so a
  *  missing DATABASE_URL must fail on first query, not on import. */
@@ -93,7 +94,7 @@ export type Book = {
   release_date?: string | null;
 };
 
-export type OrderItem = { slug: string; title: string; price: number; discount?: number; file_url?: string | null; file_format?: string | null; edition?: string | null; file_sha256?: string | null; list_price?: number };
+export type OrderItem = { slug: string; title: string; bundle?: string; price: number; discount?: number; file_url?: string | null; file_format?: string | null; edition?: string | null; file_sha256?: string | null; list_price?: number };
 
 export type Order = {
   id: string;
@@ -116,14 +117,31 @@ export type Order = {
 };
 
 export async function getBooks(): Promise<Book[]> {
-  return (await sql`
+  return withBundles((await sql`
     select * from books where active = true order by sort, title
-  `) as Book[];
+  `) as Book[]);
 }
 
 export async function getBook(slug: string): Promise<Book | null> {
   const rows = (await sql`select * from books where slug = ${slug}`) as Book[];
-  return rows[0] ?? null;
+  return (await withBundles(rows))[0] ?? null;
+}
+
+// A bundle row is filled in from its collection each time it is read (see bundles.ts), so editing the collection or a product's price
+// changes the bundle at once. Stores without the collections table, or without bundles, pay nothing for this.
+async function withBundles(rows: Book[]): Promise<Book[]> {
+  const bundles = rows.filter((b) => bundleSlugOf(b));
+  if (!bundles.length) return rows;
+  const now = new Date();
+  let collections: BundleCollection[] = [];
+  try {
+    collections = await sql`select slug, title, description, image_url, status, to_json(publish_at)#>>'{}' as publish_at, book_slugs from content_collections
+      where slug in (select jsonb_array_elements_text(${JSON.stringify(bundles.map((b) => bundleSlugOf(b)))}::jsonb))` as BundleCollection[];
+  } catch (error) { if (!/relation "content_collections" does not exist/.test(String((error as Error)?.message ?? error))) throw error; }
+  const wanted = [...new Set(collections.flatMap((c) => (Array.isArray(c.book_slugs) ? c.book_slugs : [])))];
+  const pool = wanted.length ? await sql`select * from books where slug in (select jsonb_array_elements_text(${JSON.stringify(wanted)}::jsonb))` as Book[] : [];
+  const bySlug = new Map(collections.map((c) => [c.slug, c]));
+  return rows.map((b) => { const slug = bundleSlugOf(b); return slug ? overlayBundle(b, bySlug.get(slug), pool, now) : b; });
 }
 
 export async function getOrder(id: string): Promise<Order | null> {

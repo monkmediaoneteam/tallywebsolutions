@@ -5,6 +5,10 @@ import type { CartLine, Customer, Offer } from "./offers";
 // Before the admin turns offers on, these tables do not exist: everything sells at normal prices.
 const missing = (error: unknown) => /relation "(?:offers|offer_redemptions|content_collections)" does not exist/.test(String((error as Error)?.message ?? error));
 
+// An earlier "Create starter packs" saved this 5%-off offer on every product in a pack. A bundle's 5% belongs to the bundle only, never to the
+// single products, so this one is ignored wherever it still exists (it can be archived in Admin > Offers).
+export const LEFTOVER_PACK_OFFER = "starter-packs-5-percent";
+
 /** Active offers that have not ended, with their paid redemption count. */
 export async function loadOffers(): Promise<Offer[]> {
   try {
@@ -12,7 +16,8 @@ export async function loadOffers(): Promise<Offer[]> {
         o.min_items,o.min_subtotal,o.code,o.combinable,o.first_order_only,o.usage_limit,o.per_customer_limit,o.priority,o.status,
         to_json(o.starts_at)#>>'{}' as starts_at, to_json(o.ends_at)#>>'{}' as ends_at, to_json(o.created_at)#>>'{}' as created_at,
         (select count(*)::int from offer_redemptions r where r.offer_id = o.id) as uses
-      from offers o where o.status = 'active' and (o.ends_at is null or o.ends_at > now())` as Offer[];
+      from offers o where o.status = 'active' and (o.ends_at is null or o.ends_at > now())
+        and o.id <> ${LEFTOVER_PACK_OFFER}` as Offer[];
   } catch (error) { if (missing(error)) return []; throw error; }
 }
 
