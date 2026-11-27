@@ -31,9 +31,10 @@ h3, h4 { font-family: var(--font-sans); font-weight: 500; letter-spacing: -0.015
 /* Hero */
 .hero-campaign { border: 1px solid var(--line); border-radius: 28px; box-shadow: var(--shadow-e2); background: #fff; }
 .hero-campaign::before { background: var(--bg) !important; }
-.hero-grid { min-height: 440px; padding: clamp(32px, 5vw, 68px) clamp(24px, 5vw, 72px); }
+/* Desktop hero: roomy. On phones the hero is only as tall as its content (home.css sets its phone padding). */
+@media (min-width: 901px) { .hero-grid { min-height: 440px; padding: clamp(32px, 5vw, 68px) clamp(24px, 5vw, 72px); } }
 @media (min-width: 1024px) { .hero-grid:not(:has(.hero-stage)) { grid-template-columns: minmax(0, 1fr); } }
-.hero-copy h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(44px, 5.4vw, 80px); line-height: 1.02; letter-spacing: -0.035em; }
+.hero-copy h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(34px, 5.4vw, 80px); line-height: 1.04; letter-spacing: -0.035em; }
 .hero-copy h1 .grad { background: none; color: var(--brand); font-style: italic; -webkit-text-fill-color: currentColor; animation: none; }
 .hero-copy > p { font-size: 18px; line-height: 1.6; color: var(--ink-soft); max-width: 46ch; }
 .hero-cover { animation: none; }

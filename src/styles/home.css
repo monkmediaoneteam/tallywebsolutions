@@ -126,7 +126,9 @@
     .home-side { grid-template-rows: none; grid-template-columns: 1fr 1fr; }
   }
   @media (max-width: 900px) {
-    .hero-grid { grid-template-columns: 1fr; gap: 12px; padding: 32px 22px 80px; min-height: 0; }
+    .hero-grid { grid-template-columns: 1fr; gap: 12px; padding: 28px 22px 32px; min-height: 0; }
+    /* Room for the slide arrows only when there are slides to switch between. */
+    .hero-campaign:has(.hero-controls) .hero-grid { padding-bottom: 76px; }
     .hero-campaign::before { background: var(--bg); }
     .hero-stage { height: 270px; }
     .publish-band { grid-template-columns: 1fr; }
@@ -139,8 +141,8 @@
     .faq-layout { grid-template-columns: 1fr; }
     .faq-intro { position: static; }
     .home-side { grid-template-columns: 1fr; }
-    .shop-strip { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; padding-bottom: 8px; }
-    .shop-link { flex: 0 0 auto; scroll-snap-align: start; }
+    .shop-strip { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 8px; }
+    .shop-link { flex: 0 0 auto; }
     .tile-grid { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 42%; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-bottom: 6px; }
     .tile-grid > li { scroll-snap-align: start; }
     .hero-stage { height: 200px; }
