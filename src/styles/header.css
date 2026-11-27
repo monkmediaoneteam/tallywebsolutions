@@ -64,3 +64,11 @@
     .search-key { display: none; }
   }
 }
+
+/* Phones: the header slides away while scrolling down and comes back when scrolling up. It stays while search or a menu has focus. */
+@media (max-width: 900px) {
+  .site-header { transition: transform .28s var(--ease-out), background .3s, box-shadow .3s; }
+  .site-header[data-hidden] { transform: translateY(-100%); }
+  .site-header:focus-within { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .site-header { transition: none; } }

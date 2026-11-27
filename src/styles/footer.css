@@ -20,9 +20,8 @@
 .site-footer ul a:hover { color: var(--brand); }
 
 /* Payment methods: plain text, not badges. */
-.site-footer .pay-row { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 20px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--ink-mute); }
+.site-footer .pay-row { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 20px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--ink-mute); }
 .site-footer .pay-row li { padding: 0; }
-.site-footer .pay-row li + li::before { content: "·"; margin-right: 14px; color: var(--line-2); }
 
 /* Popular: plain links separated by spaces, no pill chips. */
 .popular { padding-block: 24px; border-top: 1px solid var(--line); }

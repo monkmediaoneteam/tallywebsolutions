@@ -23,6 +23,26 @@ function useScrolled(threshold = 8) {
   return scrolled;
 }
 
+// True while the visitor scrolls down the page, false as soon as they scroll back up (or are near the top).
+// On phones the header slides away going down and returns going up, so it never covers a quarter of the screen.
+function useScrollingDown(after = 160) {
+  const [down, setDown] = useState(false);
+  useEffect(() => {
+    let last = window.scrollY, waiting = false;
+    const update = () => {
+      waiting = false;
+      const y = window.scrollY, delta = y - last;
+      if (Math.abs(delta) < 6) return;
+      setDown(y > after && delta > 0);
+      last = y;
+    };
+    const onScroll = () => { if (!waiting) { waiting = true; requestAnimationFrame(update); } };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [after]);
+  return down;
+}
+
 export default function StoreHeader({ name, nav, announcement, previews = {} }: {
   name: string; nav: { primary: NavCategory[]; more: NavCategory[] }; announcement: { title: string; link_url: string | null } | null; previews?: Record<string, Preview[]>;
 }) {
@@ -30,9 +50,10 @@ export default function StoreHeader({ name, nav, announcement, previews = {} }: 
   const wishlist = useWishlist();
   const reduced = useReducedMotion();
   const scrolled = useScrolled();
+  const goingDown = useScrollingDown();
   const [brand, by] = name.includes(" by ") ? [name.split(" by ")[0], name.split(" by ").slice(1).join(" by ")] : [name, ""];
   const count = ready ? slugs.length : 0;
-  return <header className="site-header" data-scrolled={scrolled ? "true" : undefined}>
+  return <header className="site-header" data-scrolled={scrolled ? "true" : undefined} data-hidden={goingDown ? "true" : undefined}>
     <div className="utility-bar"><div className="wrap utility-row">
       {announcement ? <p className="announcement-bar"><span className="dot" aria-hidden="true" />{announcement.link_url ? <Link href={announcement.link_url}>{announcement.title}</Link> : announcement.title}</p>
         : <p className="utility-perks"><span><Zap size={13} aria-hidden="true" />Instant download</span><span><PackageCheck size={13} aria-hidden="true" />Pay with UPI, cards and netbanking</span></p>}

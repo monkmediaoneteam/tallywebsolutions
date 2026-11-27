@@ -24,7 +24,8 @@
   .heart-btn.heart-page { width: 44px; height: 44px; }
   .quick-view-btn { position: absolute; bottom: 10px; left: 50%; display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 999px; background: rgb(255 255 255 / .92); font: 500 13px/1 var(--font-sans); white-space: nowrap; box-shadow: var(--shadow-e1); opacity: 0; translate: -50% 8px; transition: opacity .3s var(--ease-out), translate .3s var(--ease-out); }
   .book-card:hover .quick-view-btn, .book-card:focus-within .quick-view-btn { opacity: 1; translate: -50% 0; }
-  @media (hover: none) { .quick-view-btn { opacity: 1; translate: -50% 0; } }
+  /* Touch screens have no hover: a tap opens the product, so Quick view and the row arrows are not drawn there (swipe the row instead). */
+  @media (hover: none) { .quick-view-btn { display: none; } .carousel .section-actions .round-btn { display: none; } }
   .carousel-track { display: grid; grid-auto-flow: column; grid-auto-columns: 216px; gap: 18px; overflow-x: auto; scroll-snap-type: x mandatory; margin-inline: -4px; padding: 6px 4px 22px; scrollbar-width: none; cursor: grab; }
   .carousel-track::-webkit-scrollbar { display: none; }
   .carousel-track.dragging { cursor: grabbing; scroll-snap-type: none; user-select: none; }
